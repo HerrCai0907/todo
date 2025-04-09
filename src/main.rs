@@ -13,6 +13,26 @@ fn add_task() {
     db::insert_task(&conn, &task).expect("cannot insert task");
 }
 
+fn select_and_delete_task() {
+    let conn = db::create_connection().expect("cannot connect to database");
+    db::ensure_table(&conn).expect("cannot create table");
+    let tasks = db::list_tasks(&conn).expect("cannot find tasks");
+    let mut task_names: Vec<&str> = tasks.iter().map(|x| x.task.as_str()).collect();
+    let cancel_index = task_names.len();
+    task_names.push("cancel");
+    let index = cli::select(&task_names).expect("select");
+
+    if index == cancel_index {
+        println!("cancel")
+    } else {
+        db::delete_task(&conn, tasks[index].id).expect("delete");
+        println!(
+            "delete task {} with id {}",
+            tasks[index].task, tasks[index].id
+        )
+    }
+}
+
 fn list_tasks() {
     let conn = db::create_connection().expect("cannot connect to database");
     db::ensure_table(&conn).expect("cannot create table");
@@ -34,5 +54,6 @@ fn main() {
     match m.command {
         cli::Commands::Add {} => add_task(),
         cli::Commands::List {} => list_tasks(),
+        cli::Commands::Del {} => select_and_delete_task(),
     }
 }
