@@ -1,56 +1,38 @@
-use clap::{Parser, Subcommand};
-use std::io::Write;
+use clap::Parser;
+mod cli;
+mod db;
 
-#[derive(Debug, Parser)]
-#[command(propagate_version = true)]
-#[command(version, about = "todo command line tools")]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Debug, Subcommand)]
-enum Commands {
-    Add {},
-    Del {},
-    Done {},
-}
-
-fn read_input(content: &str) -> String {
-    let mut editor = rustyline::DefaultEditor::new().unwrap();
-    let readline = editor.readline(&(content.to_owned() + ": "));
-    match readline {
-        Ok(line) => {
-            if line.is_empty() {
-                line
-            } else {
-                line + &read_input(content)
-            }
-        }
-        Err(_) => String::new(),
-    }
-}
-
-fn add_task() -> () {
-    let task = read_input("task");
+fn add_task() {
+    let task = cli::read_input("task");
     if task.is_empty() {
         println!("No task provided.");
         return;
     }
-    let mut file = std::fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open("todo.txt")
-        .unwrap();
-    writeln!(file, "- [] {}", task).unwrap();
-    println!("Task added: {}", task);
+    let conn = db::create_connection().expect("cannot connect to database");
+    db::ensure_table(&conn).expect("cannot create table");
+    db::insert_task(&conn, &task).expect("cannot insert task");
+}
+
+fn list_tasks() {
+    let conn = db::create_connection().expect("cannot connect to database");
+    db::ensure_table(&conn).expect("cannot create table");
+    let tasks = db::list_tasks(&conn);
+    match tasks {
+        Ok(tasks) => {
+            for task in tasks {
+                println!("{}({}): {}", task.id, task.create_time, task.task);
+            }
+        }
+        Err(e) => {
+            println!("Error listing tasks: {}", e);
+        }
+    }
 }
 
 fn main() {
-    let m = Cli::parse();
+    let m = cli::Cli::parse();
     match m.command {
-        Commands::Add {} => add_task(),
-        Commands::Del {} => todo!(),
-        Commands::Done {} => todo!(),
+        cli::Commands::Add {} => add_task(),
+        cli::Commands::List {} => list_tasks(),
     }
 }
