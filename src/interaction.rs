@@ -1,8 +1,22 @@
 use clap::{Parser, Subcommand};
 use crossterm::{self, execute};
+use snafu::{prelude::Snafu, ResultExt};
 use std::io;
 use std::sync::mpsc;
 use std::thread;
+
+#[derive(Debug, Snafu)]
+pub enum InteractionError {
+    #[snafu(display("terminal error when '{}'", operator))]
+    Terminal {
+        source: std::io::Error,
+        operator: &'static str,
+    },
+    #[snafu(display("mpsc communication failed"))]
+    RecvEvent { source: std::sync::mpsc::RecvError },
+}
+
+type Result<T> = std::result::Result<T, InteractionError>;
 
 #[derive(Debug, Parser)]
 #[command(propagate_version = true)]
@@ -34,15 +48,14 @@ pub fn read_input(content: &str) -> String {
     }
 }
 
-fn render_menu(
-    stdout: &mut io::Stdout,
-    options: &[&str],
-    selected_index: usize,
-) -> anyhow::Result<()> {
+fn render_menu(stdout: &mut io::Stdout, options: &[&str], selected_index: usize) -> Result<()> {
     execute!(
         stdout,
         crossterm::terminal::Clear(crossterm::terminal::ClearType::All),
-    )?;
+    )
+    .context(TerminalSnafu {
+        operator: "clear screen",
+    })?;
     for (i, option) in options.iter().enumerate() {
         if i == selected_index {
             execute!(
@@ -51,39 +64,57 @@ fn render_menu(
                 crossterm::style::SetForegroundColor(crossterm::style::Color::Blue),
                 crossterm::style::Print(format!("> {}\n", *option)),
                 crossterm::style::ResetColor,
-            )?;
+            )
+            .context(TerminalSnafu {
+                operator: "render menu",
+            })?;
         } else {
             execute!(
                 stdout,
                 crossterm::cursor::MoveTo(0, i as u16),
                 crossterm::style::Print(format!("  {}\n", *option)),
-            )?;
+            )
+            .context(TerminalSnafu {
+                operator: "render menu",
+            })?;
         }
     }
-    execute!(stdout, crossterm::cursor::MoveTo(0, options.len() as u16))?;
+    execute!(stdout, crossterm::cursor::MoveTo(0, options.len() as u16)).context(
+        TerminalSnafu {
+            operator: "reset cursor",
+        },
+    )?;
     Ok(())
 }
 
-pub fn select(options: &[&str]) -> anyhow::Result<usize> {
+pub fn select(options: &[&str]) -> Result<usize> {
     assert!(!options.is_empty());
-    crossterm::terminal::enable_raw_mode()?;
+    crossterm::terminal::enable_raw_mode().context(TerminalSnafu {
+        operator: "enable_raw_mode",
+    })?;
     let mut stdout = io::stdout();
     execute!(
         stdout,
         crossterm::terminal::EnterAlternateScreen,
         crossterm::cursor::Hide
-    )?;
+    )
+    .context(TerminalSnafu {
+        operator: "enter alternate screen",
+    })?;
     let mut selected_index = 0;
     render_menu(&mut stdout, &options, selected_index)?;
 
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || loop {
         if let Ok(event) = crossterm::event::read() {
-            tx.send(event).unwrap();
+            match tx.send(event) {
+                Ok(_) => {}
+                Err(_) => break,
+            }
         }
     });
     loop {
-        match rx.recv()? {
+        match rx.recv().context(RecvEventSnafu {})? {
             crossterm::event::Event::Key(key_event) => {
                 if key_event.is_press() {
                     match key_event.code {
@@ -112,11 +143,16 @@ pub fn select(options: &[&str]) -> anyhow::Result<usize> {
             _ => {}
         }
     }
-    crossterm::terminal::disable_raw_mode()?;
+    crossterm::terminal::disable_raw_mode().context(TerminalSnafu {
+        operator: "disable_raw_mode",
+    })?;
     execute!(
         stdout,
         crossterm::terminal::LeaveAlternateScreen,
         crossterm::cursor::Show,
-    )?;
+    )
+    .context(TerminalSnafu {
+        operator: "leave alternate screen",
+    })?;
     Ok(selected_index)
 }
