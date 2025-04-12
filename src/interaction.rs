@@ -1,9 +1,6 @@
 use clap::{Parser, Subcommand};
 use crossterm::{self, execute};
 use snafu::{prelude::Snafu, ResultExt};
-use std::io;
-use std::sync::mpsc;
-use std::thread;
 
 #[derive(Debug, Snafu)]
 pub enum InteractionError {
@@ -30,7 +27,11 @@ pub struct Cli {
 pub enum Commands {
     Add {},
     Del {},
-    List {},
+    Done {},
+    List {
+        #[arg(long)]
+        all: bool,
+    },
 }
 
 pub fn read_input(content: &str) -> String {
@@ -48,7 +49,11 @@ pub fn read_input(content: &str) -> String {
     }
 }
 
-fn render_menu(stdout: &mut io::Stdout, options: &[&str], selected_index: usize) -> Result<()> {
+fn render_menu(
+    stdout: &mut std::io::Stdout,
+    options: &[&str],
+    selected_index: usize,
+) -> Result<()> {
     execute!(
         stdout,
         crossterm::terminal::Clear(crossterm::terminal::ClearType::All),
@@ -92,7 +97,7 @@ pub fn select(options: &[&str]) -> Result<usize> {
     crossterm::terminal::enable_raw_mode().context(TerminalSnafu {
         operator: "enable_raw_mode",
     })?;
-    let mut stdout = io::stdout();
+    let mut stdout = std::io::stdout();
     execute!(
         stdout,
         crossterm::terminal::EnterAlternateScreen,
@@ -104,8 +109,8 @@ pub fn select(options: &[&str]) -> Result<usize> {
     let mut selected_index = 0;
     render_menu(&mut stdout, &options, selected_index)?;
 
-    let (tx, rx) = mpsc::channel();
-    thread::spawn(move || loop {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || loop {
         if let Ok(event) = crossterm::event::read() {
             match tx.send(event) {
                 Ok(_) => {}

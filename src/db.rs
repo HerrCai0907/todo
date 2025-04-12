@@ -53,7 +53,8 @@ pub fn ensure_table(conn: &Connection) -> Result<()> {
 
 pub fn insert_task(conn: &Connection, task: &str) -> Result<()> {
     let sql = r##"
-    INSERT INTO todo (task) VALUES (?1)
+    INSERT INTO todo
+    (task) VALUES (?1)
     "##;
     conn.execute(sql, [&task]).context(SqlSnafu { sql })?;
     Ok(())
@@ -61,12 +62,26 @@ pub fn insert_task(conn: &Connection, task: &str) -> Result<()> {
 
 pub fn delete_task(conn: &Connection, id: i64) -> Result<()> {
     let sql = r##"
-UPDATE todo SET status = 'deleted' WHERE id = ?1
-"##;
+    UPDATE todo
+    SET status = 'deleted'
+    WHERE id = ?1
+    "##;
     conn.execute(sql, [id]).context(SqlSnafu { sql })?;
     Ok(())
 }
 
+pub fn done_task(conn: &Connection, id: i64) -> Result<()> {
+    let sql = r##"
+    UPDATE todo
+    SET status = 'closed',
+        finished_time = DATETIME('now', 'localtime')
+    WHERE id = ?1
+    "##;
+    conn.execute(sql, [id]).context(SqlSnafu { sql })?;
+    Ok(())
+}
+
+#[derive(Debug, Clone)]
 pub struct OpenTask {
     pub id: i64,
     pub create_time: String,
@@ -82,6 +97,24 @@ impl OpenTask {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Task {
+    pub id: i64,
+    pub create_time: String,
+    pub finished_time: Option<String>,
+    pub task: String,
+}
+impl Task {
+    fn new(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: row.get(0)?,
+            create_time: row.get(1)?,
+            finished_time: row.get(2)?,
+            task: row.get(3)?,
+        })
+    }
+}
+
 pub fn list_tasks(conn: &Connection) -> Result<Vec<OpenTask>> {
     let sql = r##"
         SELECT id, create_time, task FROM todo WHERE status = 'open'
@@ -90,6 +123,21 @@ pub fn list_tasks(conn: &Connection) -> Result<Vec<OpenTask>> {
         let mut stmt = conn.prepare(sql)?;
         let ret = stmt
             .query_map([], |row: &rusqlite::Row<'_>| Ok(OpenTask::new(row)?))?
+            .collect();
+        ret
+    })()
+    .context(SqlSnafu { sql })?;
+    Ok(ret)
+}
+
+pub fn list_all_tasks(conn: &Connection) -> Result<Vec<Task>> {
+    let sql = r##"
+        SELECT id, create_time, finished_time, task FROM todo
+    "##;
+    let ret: Vec<Task> = (|| -> rusqlite::Result<Vec<Task>> {
+        let mut stmt = conn.prepare(sql)?;
+        let ret = stmt
+            .query_map([], |row: &rusqlite::Row<'_>| Ok(Task::new(row)?))?
             .collect();
         ret
     })()

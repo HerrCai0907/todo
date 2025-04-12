@@ -20,6 +20,8 @@ pub enum TodoError {
     },
     #[snafu(display("invalid input '{}', expected '{}'", input, expect))]
     Input { input: String, expect: &'static str },
+    #[snafu(display("operator cancelled by user"))]
+    UserCancelled,
 }
 
 type TodoResult<T> = std::result::Result<T, TodoError>;
@@ -29,7 +31,7 @@ fn add_task() -> TodoResult<()> {
     if task.is_empty() {
         return Err(TodoError::Input {
             input: task,
-            expect: "task",
+            expect: "string task",
         });
     }
     let conn = db::create_connection().context(DatabaseSnafu { cases: "add task" })?;
@@ -38,34 +40,54 @@ fn add_task() -> TodoResult<()> {
     Ok(())
 }
 
-fn select_and_delete_task() -> TodoResult<()> {
-    let conn = db::create_connection().context(DatabaseSnafu {
-        cases: "delete task",
-    })?;
+fn select_task(conn: &rusqlite::Connection) -> TodoResult<Option<db::OpenTask>> {
     db::ensure_table(&conn).context(DatabaseSnafu {
-        cases: "delete task",
+        cases: "select task",
     })?;
     let tasks = db::list_tasks(&conn).context(DatabaseSnafu {
-        cases: "delete task",
+        cases: "select task",
     })?;
     let mut task_names: Vec<&str> = tasks.iter().map(|x| x.task.as_str()).collect();
     let cancel_index = task_names.len();
     task_names.push("cancel");
     let index = interaction::select(&task_names).context(InteractionSnafu {
+        cases: "select task",
+    })?;
+    Ok(if index == cancel_index {
+        None
+    } else {
+        Some(tasks[index].clone())
+    })
+}
+
+fn select_and_delete_task() -> TodoResult<()> {
+    let conn = db::create_connection().context(DatabaseSnafu {
         cases: "delete task",
     })?;
-    if index == cancel_index {
-        println!("operation canceled")
-    } else {
-        db::delete_task(&conn, tasks[index].id).context(DatabaseSnafu {
-            cases: "delete task",
-        })?;
-        println!(
-            "delete task {} with id {}",
-            tasks[index].task, tasks[index].id
-        )
-    };
-    Ok(())
+    match select_task(&conn)? {
+        Some(task) => {
+            db::delete_task(&conn, task.id).context(DatabaseSnafu {
+                cases: "delete task",
+            })?;
+            println!("delete task {} with id {}", task.task, task.id);
+            Ok(())
+        }
+        None => Err(TodoError::UserCancelled {}),
+    }
+}
+
+fn select_and_done_task() -> TodoResult<()> {
+    let conn = db::create_connection().context(DatabaseSnafu {
+        cases: "delete task",
+    })?;
+    match select_task(&conn)? {
+        Some(task) => {
+            db::done_task(&conn, task.id).context(DatabaseSnafu { cases: "done task" })?;
+            println!("done task {} with id {}", task.task, task.id);
+            Ok(())
+        }
+        None => Err(TodoError::UserCancelled {}),
+    }
 }
 
 fn list_tasks() -> TodoResult<()> {
@@ -78,12 +100,39 @@ fn list_tasks() -> TodoResult<()> {
     Ok(())
 }
 
+fn list_all_tasks() -> TodoResult<()> {
+    let conn = db::create_connection().context(DatabaseSnafu { cases: "list task" })?;
+    db::ensure_table(&conn).context(DatabaseSnafu { cases: "list task" })?;
+    let tasks = db::list_all_tasks(&conn).context(DatabaseSnafu { cases: "list task" })?;
+    for task in tasks {
+        println!(
+            "{}({} - {}): {}",
+            task.id,
+            task.create_time,
+            match task.finished_time {
+                Some(finished_time) => finished_time,
+                None => "".to_owned(),
+            },
+            task.task
+        );
+    }
+    Ok(())
+}
+
 fn todo_main() -> TodoResult<()> {
     let m = interaction::Cli::parse();
     match m.command {
         interaction::Commands::Add {} => add_task(),
-        interaction::Commands::List {} => list_tasks(),
         interaction::Commands::Del {} => select_and_delete_task(),
+        interaction::Commands::Done {} => select_and_done_task(),
+
+        interaction::Commands::List { all } => {
+            if all {
+                list_all_tasks()
+            } else {
+                list_tasks()
+            }
+        }
     }
 }
 
