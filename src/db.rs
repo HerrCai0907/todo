@@ -23,6 +23,13 @@ pub enum DBError {
         source: rusqlite::Error,
         sql: &'static str,
     },
+    #[snafu(display("failed to parse sql result '{}'", result))]
+    ParseSqlResult {
+        source: rusqlite::Error,
+        result: String,
+    },
+    #[snafu(display("invalid database"))]
+    InvalidDatabase {},
 }
 
 type Result<T> = std::result::Result<T, DBError>;
@@ -81,6 +88,16 @@ pub fn done_task(conn: &Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
+pub fn clean_outdate_task(conn: &Connection) -> Result<()> {
+    let sql = r##"
+        DELETE FROM todo
+        WHERE status IN ('closed', 'deleted')
+        AND finished_time <= DATETIME('now', '-7 days');
+    "##;
+    conn.execute(sql, []).context(SqlSnafu { sql })?;
+    Ok(())
+}
+
 #[derive(Debug, Clone)]
 pub struct OpenTask {
     pub id: i64,
@@ -93,24 +110,6 @@ impl OpenTask {
             id: row.get(0)?,
             create_time: row.get(1)?,
             task: row.get(2)?,
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Task {
-    pub id: i64,
-    pub create_time: String,
-    pub finished_time: Option<String>,
-    pub task: String,
-}
-impl Task {
-    fn new(row: &rusqlite::Row) -> rusqlite::Result<Self> {
-        Ok(Self {
-            id: row.get(0)?,
-            create_time: row.get(1)?,
-            finished_time: row.get(2)?,
-            task: row.get(3)?,
         })
     }
 }
@@ -130,17 +129,49 @@ pub fn list_tasks(conn: &Connection) -> Result<Vec<OpenTask>> {
     Ok(ret)
 }
 
+#[derive(Debug, Clone)]
+pub enum TaskStatus {
+    Open,
+    Closed,
+    Deleted,
+}
+
+#[derive(Debug, Clone)]
+pub struct Task {
+    pub id: i64,
+    pub create_time: String,
+    pub finished_time: Option<String>,
+    pub task: String,
+    pub status: TaskStatus,
+}
+impl Task {
+    fn new(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        let status: String = row.get(3)?;
+        let status = match status.as_str() {
+            "open" => TaskStatus::Open,
+            "closed" => TaskStatus::Closed,
+            "deleted" => TaskStatus::Deleted,
+            _ => panic!(),
+        };
+        Ok(Self {
+            id: row.get(0)?,
+            create_time: row.get(1)?,
+            finished_time: row.get(2)?,
+            status,
+            task: row.get(4)?,
+        })
+    }
+}
+
 pub fn list_all_tasks(conn: &Connection) -> Result<Vec<Task>> {
     let sql = r##"
-        SELECT id, create_time, finished_time, task FROM todo
+        SELECT id, create_time, finished_time, status, task FROM todo
     "##;
-    let ret: Vec<Task> = (|| -> rusqlite::Result<Vec<Task>> {
-        let mut stmt = conn.prepare(sql)?;
-        let ret = stmt
-            .query_map([], |row: &rusqlite::Row<'_>| Ok(Task::new(row)?))?
-            .collect();
-        ret
-    })()
-    .context(SqlSnafu { sql })?;
-    Ok(ret)
+
+    let mut stmt = conn.prepare(sql).context(SqlSnafu { sql })?;
+    let ret: rusqlite::Result<Vec<Task>> = stmt
+        .query_map([], |row: &rusqlite::Row<'_>| Task::new(row))
+        .context(SqlSnafu { sql })?
+        .collect();
+    ret.context(SqlSnafu { sql })
 }

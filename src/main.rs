@@ -106,8 +106,13 @@ fn list_all_tasks() -> TodoResult<()> {
     let tasks = db::list_all_tasks(&conn).context(DatabaseSnafu { cases: "list task" })?;
     for task in tasks {
         println!(
-            "{}({} - {}): {}",
+            "{}[{}]({} - {}): {}",
             task.id,
+            match task.status {
+                db::TaskStatus::Open => "OPEN",
+                db::TaskStatus::Closed => "CLOSE",
+                db::TaskStatus::Deleted => "DELETE",
+            },
             task.create_time,
             match task.finished_time {
                 Some(finished_time) => finished_time,
@@ -119,12 +124,28 @@ fn list_all_tasks() -> TodoResult<()> {
     Ok(())
 }
 
+fn clean_tasks() -> TodoResult<()> {
+    let conn = db::create_connection().context(DatabaseSnafu {
+        cases: "clean task",
+    })?;
+    db::ensure_table(&conn).context(DatabaseSnafu {
+        cases: "clean task",
+    })?;
+    db::clean_outdate_task(&conn).context(DatabaseSnafu {
+        cases: "clean task",
+    })?;
+    list_all_tasks()?;
+    Ok(())
+}
+
 fn todo_main() -> TodoResult<()> {
     let m = interaction::Cli::parse();
     match m.command {
         interaction::Commands::Add {} => add_task(),
         interaction::Commands::Del {} => select_and_delete_task(),
         interaction::Commands::Done {} => select_and_done_task(),
+
+        interaction::Commands::Clean {} => clean_tasks(),
 
         interaction::Commands::List { all } => {
             if all {

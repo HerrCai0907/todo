@@ -32,6 +32,7 @@ pub enum Commands {
         #[arg(long)]
         all: bool,
     },
+    Clean {},
 }
 
 pub fn read_input(content: &str) -> String {
