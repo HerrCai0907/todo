@@ -91,8 +91,8 @@ pub fn done_task(conn: &Connection, id: i64) -> Result<()> {
 pub fn clean_outdate_task(conn: &Connection) -> Result<()> {
     let sql = r##"
         DELETE FROM todo
-        WHERE status IN ('closed', 'deleted')
-        AND finished_time <= DATETIME('now', '-7 days');
+        WHERE (status = 'closed' OR status = 'deleted') AND
+            (finished_time IS NULL OR finished_time <= DATETIME('now', 'localtime', '-1 weeks'))
     "##;
     conn.execute(sql, []).context(SqlSnafu { sql })?;
     Ok(())
@@ -121,7 +121,7 @@ pub fn list_tasks(conn: &Connection) -> Result<Vec<OpenTask>> {
     let ret: Vec<OpenTask> = (|| -> rusqlite::Result<Vec<OpenTask>> {
         let mut stmt = conn.prepare(sql)?;
         let ret = stmt
-            .query_map([], |row: &rusqlite::Row<'_>| Ok(OpenTask::new(row)?))?
+            .query_map([], |row: &rusqlite::Row<'_>| OpenTask::new(row))?
             .collect();
         ret
     })()
@@ -144,21 +144,38 @@ pub struct Task {
     pub task: String,
     pub status: TaskStatus,
 }
-impl Task {
+
+#[derive(Clone)]
+struct TaskImpl {
+    pub id: i64,
+    pub create_time: String,
+    pub finished_time: Option<String>,
+    pub task: String,
+    pub status: String,
+}
+
+impl TaskImpl {
     fn new(row: &rusqlite::Row) -> rusqlite::Result<Self> {
-        let status: String = row.get(3)?;
-        let status = match status.as_str() {
-            "open" => TaskStatus::Open,
-            "closed" => TaskStatus::Closed,
-            "deleted" => TaskStatus::Deleted,
-            _ => panic!(),
-        };
         Ok(Self {
             id: row.get(0)?,
             create_time: row.get(1)?,
             finished_time: row.get(2)?,
-            status,
+            status: row.get(3)?,
             task: row.get(4)?,
+        })
+    }
+    fn to_task(self: &Self) -> Result<Task> {
+        Ok(Task {
+            id: self.id,
+            create_time: self.create_time.clone(),
+            finished_time: self.finished_time.clone(),
+            status: match self.status.as_str() {
+                "open" => TaskStatus::Open,
+                "closed" => TaskStatus::Closed,
+                "deleted" => TaskStatus::Deleted,
+                _ => panic!(),
+            },
+            task: self.task.clone(),
         })
     }
 }
@@ -169,9 +186,14 @@ pub fn list_all_tasks(conn: &Connection) -> Result<Vec<Task>> {
     "##;
 
     let mut stmt = conn.prepare(sql).context(SqlSnafu { sql })?;
-    let ret: rusqlite::Result<Vec<Task>> = stmt
-        .query_map([], |row: &rusqlite::Row<'_>| Task::new(row))
+    let ret = stmt
+        .query_map([], |row: &rusqlite::Row<'_>| TaskImpl::new(row))
         .context(SqlSnafu { sql })?
+        .collect::<rusqlite::Result<Vec<TaskImpl>>>()
+        .context(SqlSnafu { sql })?;
+    let ret = ret
+        .iter()
+        .map(|task_impl| TaskImpl::to_task(task_impl))
         .collect();
-    ret.context(SqlSnafu { sql })
+    ret
 }

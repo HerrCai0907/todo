@@ -37,6 +37,7 @@ fn add_task() -> TodoResult<()> {
     let conn = db::create_connection().context(DatabaseSnafu { cases: "add task" })?;
     db::ensure_table(&conn).context(DatabaseSnafu { cases: "add task" })?;
     db::insert_task(&conn, &task).context(DatabaseSnafu { cases: "add task" })?;
+    list_tasks()?;
     Ok(())
 }
 
@@ -83,7 +84,7 @@ fn select_and_done_task() -> TodoResult<()> {
     match select_task(&conn)? {
         Some(task) => {
             db::done_task(&conn, task.id).context(DatabaseSnafu { cases: "done task" })?;
-            println!("done task {} with id {}", task.task, task.id);
+            println!("done task '{}' with id {}", task.task, task.id);
             Ok(())
         }
         None => Err(TodoError::UserCancelled {}),
