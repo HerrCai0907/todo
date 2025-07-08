@@ -95,7 +95,13 @@ fn select_and_edit_task() -> TodoResult<()> {
     let conn = db::create_connection().context(DatabaseSnafu { cases: "edit task" })?;
     match select_task(&conn)? {
         Some(task) => {
-            let new_task: String = "".to_string();
+            let new_task = interaction::read_input_with_default("task", &task.task);
+            if new_task.is_empty() {
+                return Err(TodoError::Input {
+                    input: new_task,
+                    expect: "string task",
+                });
+            }
             let old_task = task.task;
             db::edit_task(&conn, task.id, &new_task)
                 .context(DatabaseSnafu { cases: "edit task" })?;

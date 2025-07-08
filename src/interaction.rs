@@ -36,15 +36,36 @@ pub enum Commands {
     Clean {},
 }
 
-pub fn read_input(content: &str) -> String {
-    let mut editor = rustyline::DefaultEditor::new().unwrap();
-    let readline = editor.readline(&(content.to_owned() + ">> "));
+type LineEditor = rustyline::Editor<(), rustyline::history::FileHistory>;
+
+fn read_line_impl(editor: &mut LineEditor, prompt: &str) -> String {
+    let readline = editor.readline(prompt);
     match readline {
         Ok(line) => {
             if line.is_empty() {
                 line
             } else {
-                line + &read_input(content)
+                line + &read_line_impl(editor, prompt)
+            }
+        }
+        Err(_) => String::new(),
+    }
+}
+
+pub fn read_input(content: &str) -> String {
+    let mut editor: LineEditor = rustyline::DefaultEditor::new().unwrap();
+    read_line_impl(&mut editor, &(content.to_owned() + ">> "))
+}
+
+pub fn read_input_with_default(content: &str, default: &str) -> String {
+    let mut editor: LineEditor = rustyline::DefaultEditor::new().unwrap();
+    let prompt: String = content.to_owned() + ">> ";
+    match editor.readline_with_initial(&prompt, (default, "")) {
+        Ok(line) => {
+            if line.is_empty() {
+                String::new()
+            } else {
+                line + &read_line_impl(&mut editor, &prompt)
             }
         }
         Err(_) => String::new(),
