@@ -77,6 +77,13 @@ pub fn delete_task(conn: &Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
+pub fn edit_task(conn: &Connection, id: i64, new_task: &String) -> Result<()> {
+    let sql = r##"
+    
+    "##;
+    Ok(())
+}
+
 pub fn done_task(conn: &Connection, id: i64) -> Result<()> {
     let sql = r##"
     UPDATE todo

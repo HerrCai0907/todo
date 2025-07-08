@@ -27,6 +27,7 @@ pub struct Cli {
 pub enum Commands {
     Add {},
     Del {},
+    Edit {},
     Done {},
     List {
         #[arg(long)]
