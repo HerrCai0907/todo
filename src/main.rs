@@ -70,7 +70,7 @@ fn select_and_delete_task() -> TodoResult<()> {
             db::delete_task(&conn, task.id).context(DatabaseSnafu {
                 cases: "delete task",
             })?;
-            println!("delete task {} with id {}", task.task, task.id);
+            println!("delete task({}): {} ", task.id, task.task);
             Ok(())
         }
         None => Err(TodoError::UserCancelled {}),
@@ -84,7 +84,31 @@ fn select_and_done_task() -> TodoResult<()> {
     match select_task(&conn)? {
         Some(task) => {
             db::done_task(&conn, task.id).context(DatabaseSnafu { cases: "done task" })?;
-            println!("done task '{}' with id {}", task.task, task.id);
+            println!("done task({}): '{}'", task.id, task.task);
+            Ok(())
+        }
+        None => Err(TodoError::UserCancelled {}),
+    }
+}
+
+fn select_and_edit_task() -> TodoResult<()> {
+    let conn = db::create_connection().context(DatabaseSnafu { cases: "edit task" })?;
+    match select_task(&conn)? {
+        Some(task) => {
+            let new_task = interaction::read_input_with_default("task", &task.task);
+            if new_task.is_empty() {
+                return Err(TodoError::Input {
+                    input: new_task,
+                    expect: "string task",
+                });
+            }
+            let old_task = task.task;
+            db::edit_task(&conn, task.id, &new_task)
+                .context(DatabaseSnafu { cases: "edit task" })?;
+            println!(
+                "edit task({}):\n\t'{}'\n\t-> '{}'",
+                task.id, old_task, new_task
+            );
             Ok(())
         }
         None => Err(TodoError::UserCancelled {}),
@@ -145,6 +169,7 @@ fn todo_main() -> TodoResult<()> {
         interaction::Commands::Add {} => add_task(),
         interaction::Commands::Del {} => select_and_delete_task(),
         interaction::Commands::Done {} => select_and_done_task(),
+        interaction::Commands::Edit {} => select_and_edit_task(),
 
         interaction::Commands::Clean {} => clean_tasks(),
 
