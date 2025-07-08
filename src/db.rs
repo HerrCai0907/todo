@@ -79,8 +79,12 @@ pub fn delete_task(conn: &Connection, id: i64) -> Result<()> {
 
 pub fn edit_task(conn: &Connection, id: i64, new_task: &String) -> Result<()> {
     let sql = r##"
-    
+    UPDATE todo
+    SET task = ?2
+    WHERE id = ?1
     "##;
+    conn.execute(sql, rusqlite::params![id, new_task])
+        .context(SqlSnafu { sql })?;
     Ok(())
 }
 
