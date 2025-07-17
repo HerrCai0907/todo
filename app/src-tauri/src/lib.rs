@@ -46,6 +46,26 @@ fn get_todo_list() -> String {
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_todo_list])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .setup(|app| {
+            let quit_item =
+                tauri::menu::MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let menu = tauri::menu::Menu::with_items(app, &[&quit_item])?;
+            let _tray = tauri::tray::TrayIconBuilder::new()
+                .icon(app.default_window_icon().ok_or("cannot find icon")?.clone())
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .build(app);
+            Ok(())
+        })
+        .build(tauri::generate_context!())
+        .expect("error while init application")
+        .run(|_app, event| match event {
+            tauri::RunEvent::Ready => {
+                println!("application is ready!");
+            }
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                api.prevent_exit();
+            }
+            _ => {}
+        });
 }
