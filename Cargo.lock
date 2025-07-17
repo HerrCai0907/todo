@@ -588,13 +588,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "todo"
+name = "todo_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
  "crossterm",
- "rusqlite",
  "rustyline",
+ "snafu",
+ "todo_core",
+]
+
+[[package]]
+name = "todo_core"
+version = "0.1.0"
+dependencies = [
+ "rusqlite",
  "snafu",
 ]
 

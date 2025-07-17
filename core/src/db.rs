@@ -1,5 +1,15 @@
-use rusqlite::Connection;
-use snafu::{prelude::Snafu, ResultExt};
+use snafu::{ResultExt, prelude::Snafu};
+
+pub struct Connection(rusqlite::Connection);
+
+impl Connection {
+    pub fn execute<P: rusqlite::Params>(&self, sql: &str, params: P) -> rusqlite::Result<usize> {
+        self.0.execute(sql, params)
+    }
+    fn prepare(&self, sql: &str) -> rusqlite::Result<rusqlite::Statement<'_>> {
+        self.0.prepare(sql)
+    }
+}
 
 #[derive(Debug, Snafu)]
 pub enum DBError {
@@ -39,8 +49,8 @@ pub fn create_connection() -> Result<Connection> {
     let dir_path = format!("{}/.todo", home_path);
     std::fs::create_dir_all(&dir_path).context(CreateDirSnafu { path: dir_path })?;
     let db_path = format!("{}/.todo/todo.db", home_path);
-    let conn = Connection::open(&db_path).context(ConnectSnafu { db_path })?;
-    Ok(conn)
+    let conn = rusqlite::Connection::open(&db_path).context(ConnectSnafu { db_path })?;
+    Ok(Connection(conn))
 }
 
 pub fn ensure_table(conn: &Connection) -> Result<()> {
@@ -73,7 +83,7 @@ pub fn delete_task(conn: &Connection, id: i64) -> Result<()> {
     SET status = 'deleted'
     WHERE id = ?1
     "##;
-    conn.execute(sql, [id]).context(SqlSnafu { sql })?;
+    conn.0.execute(sql, [id]).context(SqlSnafu { sql })?;
     Ok(())
 }
 

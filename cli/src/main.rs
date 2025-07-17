@@ -1,16 +1,15 @@
-mod db;
 mod interaction;
 
 use clap::Parser;
-use db::DBError;
 use interaction::InteractionError;
-use snafu::{prelude::Snafu, ResultExt};
+use snafu::{ResultExt, prelude::Snafu};
+use todo_core::db;
 
 #[derive(Debug, Snafu)]
 pub enum TodoError {
     #[snafu(display("database error when {}", cases))]
     Database {
-        source: DBError,
+        source: db::DBError,
         cases: &'static str,
     },
     #[snafu(display("user interaction error"))]
@@ -41,7 +40,7 @@ fn add_task() -> TodoResult<()> {
     Ok(())
 }
 
-fn select_task(conn: &rusqlite::Connection) -> TodoResult<Option<db::OpenTask>> {
+fn select_task(conn: &db::Connection) -> TodoResult<Option<db::OpenTask>> {
     db::ensure_table(&conn).context(DatabaseSnafu {
         cases: "select task",
     })?;
