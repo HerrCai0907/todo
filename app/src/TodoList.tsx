@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { Checkbox, ConfigProvider, Table, TableProps } from "antd";
+import { Checkbox, ConfigProvider, message, Table, TableProps } from "antd";
 import { Task } from "./types";
+import { ipc } from "./ipc";
 
 type P = {
   tasks: Task[];
+  onPost: () => void;
 };
 
-const TodoList: React.FC<P> = ({ tasks }: P) => {
+const TodoList: React.FC<P> = ({ tasks, onPost }: P) => {
   const [selectedState, setSelectedState] = useState<{
     currentSelectedId: number | undefined;
     lastSelectedId: number | undefined;
@@ -20,8 +22,18 @@ const TodoList: React.FC<P> = ({ tasks }: P) => {
         if (selectedState.currentSelectedId == record.id) {
           return (
             <div>
-              {text}&nbsp;
-              <Checkbox></Checkbox>
+              {text}&nbsp;&nbsp;&nbsp;
+              <Checkbox
+                onClick={() => {
+                  (async () => {
+                    try {
+                      await ipc<null>("post_task_done", { id: record.id });
+                      message.success(`finished task '${record.task}' successfully`);
+                      onPost();
+                    } catch (_) {}
+                  })();
+                }}
+              ></Checkbox>
             </div>
           );
         } else {
@@ -43,10 +55,10 @@ const TodoList: React.FC<P> = ({ tasks }: P) => {
     pagination: { position: ["topCenter", "bottomCenter"], hideOnSinglePage: true, showSizeChanger: false },
     onRow: (record) => {
       return {
-        onMouseEnter: (_) => {
+        onMouseEnter: () => {
           setSelectedState({ currentSelectedId: record.id, lastSelectedId: selectedState.currentSelectedId });
         },
-        onMouseLeave: (_) => {
+        onMouseLeave: () => {
           setSelectedState({ currentSelectedId: undefined, lastSelectedId: selectedState.currentSelectedId });
         },
       };
