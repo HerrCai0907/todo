@@ -1,4 +1,3 @@
-use tauri::Manager;
 use todo_core::db;
 
 fn list_task() -> Result<Vec<db::OpenTask>, db::DBError> {
@@ -43,38 +42,63 @@ fn get_todo_list() -> String {
     }
 }
 
+fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let tray = tauri::tray::TrayIconBuilder::new();
+    let tray = tray.icon(app.default_window_icon().ok_or("cannot find icon")?.clone());
+
+    let tray = tray.menu(&tauri::menu::Menu::with_items(
+        app,
+        &[&tauri::menu::MenuItem::with_id(
+            app,
+            "quit",
+            "Quit",
+            true,
+            None::<&str>,
+        )?],
+    )?);
+
+    let handler = app.handle().clone();
+    let on_tray_icon_event = move |event: tauri::tray::TrayIconEvent| match event {
+        tauri::tray::TrayIconEvent::Click {
+            button,
+            button_state,
+            ..
+        } => match (button, button_state) {
+            (tauri::tray::MouseButton::Left, tauri::tray::MouseButtonState::Up) => {
+                match tauri::Manager::get_webview_window(&handler, "main") {
+                    Some(window) => match window.set_focus() {
+                        Ok(_) => {}
+                        Err(e) => {
+                            eprintln!("Error focusing window: {}", e);
+                        }
+                    },
+                    None => {
+                        tauri::webview::WebviewWindowBuilder::new(
+                            &handler,
+                            "main",
+                            tauri::WebviewUrl::App("index.html".into()),
+                        )
+                        .build()
+                        .expect("cannot re-create main window");
+                    }
+                };
+            }
+            _ => {}
+        },
+        _ => {}
+    };
+    let tray = tray.show_menu_on_left_click(false);
+    let tray = tray.on_tray_icon_event(move |_tray_icon, event| on_tray_icon_event(event));
+
+    let _ = tray.build(app);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![get_todo_list])
-        .setup(|app| {
-            let handler = app.handle().clone();
-            let quit_item =
-                tauri::menu::MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = tauri::menu::Menu::with_items(app, &[&quit_item])?;
-            let _tray = tauri::tray::TrayIconBuilder::new()
-                .icon(app.default_window_icon().ok_or("cannot find icon")?.clone())
-                .menu(&menu)
-                .show_menu_on_left_click(false)
-                .on_tray_icon_event(move |_tray_icon, event| match event {
-                    tauri::tray::TrayIconEvent::Click { button, .. } => match button {
-                        tauri::tray::MouseButton::Left => {
-                            match handler.get_webview_window("main") {
-                                Some(window) => {
-                                    eprintln!("Main window found");
-                                }
-                                None => {
-                                    eprintln!("Main window not found");
-                                }
-                            };
-                        }
-                        _ => {}
-                    },
-                    _ => {}
-                })
-                .build(app);
-            Ok(())
-        })
+        .setup(setup_app)
         .build(tauri::generate_context!())
         .expect("error while init application")
         .run(|_app, event| match event {
