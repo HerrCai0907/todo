@@ -1,10 +1,8 @@
 import React, { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { message } from "antd";
+import { ConfigProvider, message, theme } from "antd";
 import { Task } from "./types";
 import TodoList from "./TodoList";
-// import { TrayIcon } from "@tauri-apps/api/tray";
-// import { defaultWindowIcon } from "@tauri-apps/api/app";
 
 interface SuccessResponse {
   data: Task[];
@@ -15,15 +13,7 @@ interface ErrorResponse {
 }
 
 const App: React.FC = () => {
-  const [todoList, setTodoList] = React.useState<Task[] | null>(null);
-
-  // useEffect(() => {
-  //   (async () => {
-  //     await TrayIcon.new({
-  //       icon: (await defaultWindowIcon()) ?? undefined,
-  //     });
-  //   })();
-  // }, []);
+  const [todoList, setTodoList] = React.useState<Task[] | undefined>(undefined);
 
   useEffect(() => {
     const fn = async () => {
@@ -38,13 +28,20 @@ const App: React.FC = () => {
       }
     };
     fn();
-    setInterval(fn, 1000);
+    let handler = setInterval(fn, 5 * 1000);
+    return () => clearInterval(handler);
   }, []);
+  if (todoList === undefined) {
+    return <div>Loading...</div>;
+  }
   return (
-    <div>
-      <h1>TODO</h1>
+    <ConfigProvider
+      theme={{
+        algorithm: [theme.darkAlgorithm, theme.compactAlgorithm],
+      }}
+    >
       <TodoList tasks={todoList} />
-    </div>
+    </ConfigProvider>
   );
 };
 
