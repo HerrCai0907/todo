@@ -1,2 +1,4 @@
 /target
 /todo.db
+/app/node_modules
+/app/dist
