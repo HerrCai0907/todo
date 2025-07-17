@@ -1,45 +1,30 @@
 use todo_core::db;
 
-fn list_task() -> Result<Vec<db::OpenTask>, db::DBError> {
+struct CommandError(serde_json::Value);
+type CommandResult = std::result::Result<serde_json::Value, CommandError>;
+
+fn to_response(result: CommandResult) -> String {
+    match result {
+        Ok(data) => format!(r#"{{"data": {}}}"#, data.to_string()),
+        Err(error) => format!(r#"{{"error": {}}}"#, error.0.to_string()),
+    }
+}
+
+impl From<db::DBError> for CommandError {
+    fn from(error: db::DBError) -> Self {
+        CommandError(serde_json::json!(error.to_string()))
+    }
+}
+
+fn get_todo_list_impl() -> CommandResult {
     let conn = db::create_connection()?;
     let tasks = db::list_tasks(&conn)?;
-    Ok(tasks)
+    Ok(serde_json::json!(tasks))
 }
 
 #[tauri::command]
 fn get_todo_list() -> String {
-    match list_task() {
-        Ok(tasks) => match serde_json::to_string(&tasks) {
-            Ok(json) => format!(
-                r#"
-            {{"data": {}}}
-            "#,
-                json
-            ),
-            Err(e) => {
-                eprintln!("{}", e);
-                let e = serde_json::to_string(&e.to_string())
-                    .unwrap_or_else(|_| "unknown error".to_string());
-                format!(
-                    r#"
-            {{"err": {}}}
-            "#,
-                    e
-                )
-            }
-        },
-        Err(e) => {
-            eprintln!("{}", e);
-            let e = serde_json::to_string(&e.to_string())
-                .unwrap_or_else(|_| "unknown error".to_string());
-            format!(
-                r#"
-            {{"err": {}}}
-            "#,
-                e
-            )
-        }
-    }
+    to_response(get_todo_list_impl())
 }
 
 fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error::Error>> {

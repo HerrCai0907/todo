@@ -9,7 +9,7 @@ interface SuccessResponse {
 }
 
 interface ErrorResponse {
-  err: string;
+  error: string;
 }
 
 const App: React.FC = () => {
@@ -21,7 +21,7 @@ const App: React.FC = () => {
         let response = await invoke<string>("get_todo_list");
         console.log(response);
         let res: SuccessResponse | ErrorResponse = JSON.parse(response);
-        if ("err" in res) throw new Error(res.err);
+        if ("error" in res) throw new Error(res.error);
         setTodoList(res.data);
       } catch (e) {
         if (e instanceof Error) message.error(`Error fetching todo list\n${e.message}`);
