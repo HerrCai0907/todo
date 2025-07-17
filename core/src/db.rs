@@ -119,7 +119,7 @@ pub fn clean_outdate_task(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct OpenTask {
     pub id: i64,
     pub create_time: String,

@@ -1,4 +1,4 @@
 {
   "editor.formatOnSave": true,
-  "cSpell.words": ["AUTOINCREMENT", "crossterm", "localtime", "rusqlite", "rustyline"]
+  "cSpell.words": ["AUTOINCREMENT", "crossterm", "localtime", "rusqlite", "rustyline", "serde"]
 }

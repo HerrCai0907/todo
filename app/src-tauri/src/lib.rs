@@ -8,17 +8,38 @@ fn list_task() -> Result<Vec<db::OpenTask>, db::DBError> {
 
 #[tauri::command]
 fn get_todo_list() -> String {
-    let s = match list_task() {
-        Ok(tasks) => {
-            dbg!(&tasks);
-            format!("Todo list: {:?}", tasks)
-        }
+    match list_task() {
+        Ok(tasks) => match serde_json::to_string(&tasks) {
+            Ok(json) => format!(
+                r#"
+            {{"data": {}}}
+            "#,
+                json
+            ),
+            Err(e) => {
+                eprintln!("{}", e);
+                let e = serde_json::to_string(&e.to_string())
+                    .unwrap_or_else(|_| "unknown error".to_string());
+                format!(
+                    r#"
+            {{"err": {}}}
+            "#,
+                    e
+                )
+            }
+        },
         Err(e) => {
-            dbg!(&e);
-            format!("Error: {}", e)
+            eprintln!("{}", e);
+            let e = serde_json::to_string(&e.to_string())
+                .unwrap_or_else(|_| "unknown error".to_string());
+            format!(
+                r#"
+            {{"err": {}}}
+            "#,
+                e
+            )
         }
-    };
-    s
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
