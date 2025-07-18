@@ -56,7 +56,7 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
         &[&tauri::menu::MenuItem::with_id(
             app,
             "quit",
-            "Quit",
+            "quit",
             true,
             None::<&str>,
         )?],
@@ -78,12 +78,11 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
                         }
                     },
                     None => {
-                        tauri::webview::WebviewWindowBuilder::new(
+                        tauri::webview::WebviewWindowBuilder::from_config(
                             &handler,
-                            "main",
-                            tauri::WebviewUrl::App("index.html".into()),
+                            &handler.config().app.windows.get(0).unwrap().clone(),
                         )
-                        .build()
+                        .and_then(tauri::webview::WebviewWindowBuilder::build)
                         .expect("cannot re-create main window");
                     }
                 };
