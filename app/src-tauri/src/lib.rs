@@ -27,6 +27,16 @@ fn get_tasks() -> String {
     to_response(get_tasks_impl())
 }
 
+fn post_task_impl(task: &str) -> CommandResult {
+    let conn = db::create_connection()?;
+    let tasks = db::insert_task(&conn, task)?;
+    Ok(serde_json::json!(tasks))
+}
+#[tauri::command]
+fn post_task(task: &str) -> String {
+    to_response(post_task_impl(task))
+}
+
 fn post_task_done_impl(id: i64) -> CommandResult {
     let conn = db::create_connection()?;
     let tasks = db::done_task(&conn, id)?;
@@ -92,7 +102,11 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_tasks, post_task_done])
+        .invoke_handler(tauri::generate_handler![
+            get_tasks,
+            post_task,
+            post_task_done
+        ])
         .setup(setup_app)
         .build(tauri::generate_context!())
         .expect("error while init application")

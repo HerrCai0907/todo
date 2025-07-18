@@ -12,6 +12,7 @@ interface ErrorResponse {
 export async function ipc<T>(cmd: string, args?: InvokeArgs, options?: InvokeOptions): Promise<T> {
   try {
     let response = await invoke<string>(cmd, args, options);
+    console.log(response);
     let res: SuccessResponse<T> | ErrorResponse = JSON.parse(response);
     if ("error" in res) throw new Error(res.error);
     return res.data;

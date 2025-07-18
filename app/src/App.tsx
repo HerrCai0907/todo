@@ -3,6 +3,7 @@ import { ConfigProvider, theme } from "antd";
 import { Task } from "./types";
 import TodoList from "./TodoList";
 import { ipc } from "./ipc";
+import TaskAdder from "./TaskAdder";
 
 const App: React.FC = () => {
   const [todoList, setTodoList] = React.useState<Task[] | undefined>(undefined);
@@ -26,13 +27,8 @@ const App: React.FC = () => {
         algorithm: [theme.darkAlgorithm, theme.compactAlgorithm],
       }}
     >
-      <TodoList
-        tasks={todoList}
-        onPost={() => {
-          console.log("post");
-          fn();
-        }}
-      />
+      <TaskAdder onPost={fn}></TaskAdder>
+      <TodoList tasks={todoList} onPost={fn} />
     </ConfigProvider>
   );
 };
