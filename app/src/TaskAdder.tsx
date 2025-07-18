@@ -21,6 +21,7 @@ const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
     try {
       await ipc<null>("post_task", { task: inputTextTrimmed });
       success(appRef, `create new task successfully`, inputTextTrimmed);
+      setInputText("");
       onNotifyServer();
     } catch (e) {
       if (e instanceof Error) error(appRef, "Error fetching todo list", e.message);
@@ -36,7 +37,14 @@ const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
         style={{ marginLeft: 8 }}
         icon={<PlusCircleOutlined />}
       />
-      <TextArea size="small" placeholder="add new task" autoSize allowClear onChange={handleInputChange} />
+      <TextArea
+        size="small"
+        placeholder="add new task"
+        autoSize
+        allowClear
+        onChange={handleInputChange}
+        value={inputText}
+      />
     </Flex>
   );
 };
