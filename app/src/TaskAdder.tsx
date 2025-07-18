@@ -1,25 +1,30 @@
 import React, { useState } from "react";
 import { PlusCircleOutlined } from "@ant-design/icons";
-import { Button, Flex, Input, message } from "antd";
+import { App, Button, Flex, Input } from "antd";
 import { ipc } from "./ipc";
+import { error, success } from "./notification";
 const { TextArea } = Input;
 
 type P = {
-  onPost: () => void;
+  onNotifyServer: () => void;
 };
 
-const TaskAdder: React.FC<P> = ({ onPost }) => {
+const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
+  const appRef = App.useApp();
   const [inputText, setInputText] = useState("");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(e.target.value);
   };
   const handleButtonClick = async () => {
+    const inputTextTrimmed = inputText.trim();
     try {
-      await ipc<null>("post_task", { task: inputText.trim() });
-      message.success(`finished task '${inputText}' successfully`);
-      onPost();
-    } catch (e) {}
+      await ipc<null>("post_task", { task: inputTextTrimmed });
+      success(appRef, `create new task successfully`, inputTextTrimmed);
+      onNotifyServer();
+    } catch (e) {
+      if (e instanceof Error) error(appRef, "Error fetching todo list", e.message);
+    }
   };
 
   return (

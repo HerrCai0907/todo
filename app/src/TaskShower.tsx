@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { Checkbox, ConfigProvider, message, Table, TableProps } from "antd";
+import { App, Checkbox, ConfigProvider, Table, TableProps } from "antd";
 import { Task } from "./types";
 import { ipc } from "./ipc";
+import { error, success } from "./notification";
 
 type P = {
   tasks: Task[];
-  onPost: () => void;
+  onNotifyServer: () => void;
 };
 
-const TodoList: React.FC<P> = ({ tasks, onPost }: P) => {
+const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
+  const appRef = App.useApp();
   const [selectedState, setSelectedState] = useState<{
     currentSelectedId: number | undefined;
     lastSelectedId: number | undefined;
@@ -28,9 +30,11 @@ const TodoList: React.FC<P> = ({ tasks, onPost }: P) => {
                   (async () => {
                     try {
                       await ipc<null>("post_task_done", { id: record.id });
-                      message.success(`finished task '${record.task}' successfully`);
-                      onPost();
-                    } catch (_) {}
+                      success(appRef, `finished`, record.task);
+                      onNotifyServer();
+                    } catch (e) {
+                      if (e instanceof Error) error(appRef, "An error occurred while completing the task", e.message);
+                    }
                   })();
                 }}
               ></Checkbox>
@@ -80,4 +84,4 @@ const TodoList: React.FC<P> = ({ tasks, onPost }: P) => {
   );
 };
 
-export default TodoList;
+export default TaskShower;

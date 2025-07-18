@@ -1,10 +1,21 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
+import MainPage from "./MainPage";
+import { ConfigProvider, theme, App } from "antd";
 import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+const Root = () => (
   <React.StrictMode>
-    <App />
+    <ConfigProvider
+      theme={{
+        algorithm: [theme.darkAlgorithm, theme.compactAlgorithm],
+      }}
+    >
+      <App>
+        <MainPage />
+      </App>
+    </ConfigProvider>
   </React.StrictMode>
 );
+
+ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(<Root />);
