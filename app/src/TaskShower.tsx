@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { App, Checkbox, ConfigProvider, Table, TableProps } from "antd";
+import { ConfigProvider, Table, TableProps } from "antd";
 import { Task } from "./types";
-import { ipc } from "./ipc";
-import { error, success } from "./notification";
+import SelectedTaskItem from "./SeklectedTaskItem";
 
 type P = {
   tasks: Task[];
@@ -10,7 +9,6 @@ type P = {
 };
 
 const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
-  const appRef = App.useApp();
   const [selectedState, setSelectedState] = useState<{
     currentSelectedId: number | undefined;
     lastSelectedId: number | undefined;
@@ -22,24 +20,7 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
       key: "id",
       render: (text: Task["task"], record, _) => {
         if (selectedState.currentSelectedId == record.id) {
-          return (
-            <div>
-              {text}&nbsp;&nbsp;&nbsp;
-              <Checkbox
-                onClick={() => {
-                  (async () => {
-                    try {
-                      await ipc<null>("post_task_done", { id: record.id });
-                      success(appRef, `finished`, record.task);
-                      onNotifyServer();
-                    } catch (e) {
-                      if (e instanceof Error) error(appRef, "An error occurred while completing the task", e.message);
-                    }
-                  })();
-                }}
-              ></Checkbox>
-            </div>
-          );
+          return <SelectedTaskItem record={record} onNotifyServer={onNotifyServer}></SelectedTaskItem>;
         } else {
           return <div>{text}</div>;
         }
