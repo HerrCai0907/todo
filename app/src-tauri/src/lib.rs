@@ -1,4 +1,5 @@
 use todo_core::db;
+mod position;
 
 struct CommandError(serde_json::Value);
 type CommandResult = std::result::Result<serde_json::Value, CommandError>;
@@ -67,16 +68,17 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
         tauri::tray::TrayIconEvent::Click {
             button,
             button_state,
+            position,
             ..
         } => match (button, button_state) {
             (tauri::tray::MouseButton::Left, tauri::tray::MouseButtonState::Up) => {
                 match tauri::Manager::get_webview_window(&handler, "main") {
-                    Some(window) => match window.set_focus() {
-                        Ok(_) => {}
-                        Err(e) => {
-                            eprintln!("Error focusing window: {}", e);
-                        }
-                    },
+                    Some(window) => {
+                        position::set_webview_windows_to_position(&window, &handler, &position);
+                        window.set_focus().unwrap_or_else(|e| {
+                            eprintln!("Error focusing main window: {}", e);
+                        });
+                    }
                     None => {
                         tauri::webview::WebviewWindowBuilder::from_config(
                             &handler,
