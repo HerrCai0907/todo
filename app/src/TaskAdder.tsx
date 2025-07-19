@@ -18,6 +18,8 @@ const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
   };
   const handleButtonClick = async () => {
     const inputTextTrimmed = inputText.trim();
+    // do not add empty task to avoid unintended click
+    if (inputTextTrimmed.length == 0) return;
     try {
       await ipc<null>("post_task", { task: inputTextTrimmed });
       success(appRef, `create new task successfully`, inputTextTrimmed);
@@ -29,7 +31,7 @@ const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
   };
 
   return (
-    <Flex vertical={false}>
+    <Flex vertical={false} align={"center"} gap={"small"}>
       <Button
         onClick={handleButtonClick}
         type="primary"
