@@ -50,7 +50,12 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
     rowKey: "id",
     size: "small",
     bordered: false,
-    pagination: { position: ["topCenter", "bottomCenter"], hideOnSinglePage: true, showSizeChanger: false },
+    pagination: {
+      position: ["topCenter", "bottomCenter"],
+      hideOnSinglePage: true,
+      showSizeChanger: false,
+      size: "small",
+    },
     onRow: (record) => {
       return {
         onMouseEnter: () => {
