@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { ConfigProvider, Table, TableProps } from "antd";
 import { Task } from "./types";
-import SelectedTaskItem from "./SeklectedTaskItem";
+import SelectedTaskItem from "./SelectedTaskItem";
+import EditingTaskItem from "./EditingTaskItem";
 
 type P = {
   tasks: Task[];
@@ -9,24 +10,36 @@ type P = {
 };
 
 const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
-  const [selectedState, setSelectedState] = useState<{
-    currentSelectedId: number | undefined;
-    lastSelectedId: number | undefined;
-  }>({ currentSelectedId: undefined, lastSelectedId: undefined });
+  const [currentSelectedId, setCurrentSelectedId] = useState<number | undefined>(undefined);
+  const [currentEditingId, setCurrentEditingId] = useState<number | undefined>(undefined);
+  const [pendingUpdateItem, setPendingUpdateItem] = useState<number[]>([]);
 
   const columns: TableProps<Task>["columns"] = [
     {
       dataIndex: "task",
       key: "id",
       render: (text: Task["task"], record, _) => {
-        if (selectedState.currentSelectedId == record.id) {
-          return <SelectedTaskItem record={record} onNotifyServer={onNotifyServer}></SelectedTaskItem>;
+        const id = record.id;
+        const onEditing = () => {
+          setCurrentEditingId(id);
+        };
+        if (currentEditingId == record.id) {
+          const onSubmit = () => {
+            setCurrentEditingId(undefined);
+            setPendingUpdateItem([record.id]);
+            onNotifyServer();
+          };
+          return <EditingTaskItem record={record} onSubmit={onSubmit}></EditingTaskItem>;
+        } else if (currentSelectedId == record.id) {
+          return (
+            <SelectedTaskItem record={record} onEditing={onEditing} onNotifyServer={onNotifyServer}></SelectedTaskItem>
+          );
         } else {
           return <div>{text}</div>;
         }
       },
-      shouldCellUpdate(record, prevRecord) {
-        return record.id === selectedState.currentSelectedId || prevRecord.id === selectedState.lastSelectedId;
+      shouldCellUpdate(record) {
+        return pendingUpdateItem.includes(record.id);
       },
     },
   ];
@@ -41,10 +54,13 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
     onRow: (record) => {
       return {
         onMouseEnter: () => {
-          setSelectedState({ currentSelectedId: record.id, lastSelectedId: selectedState.currentSelectedId });
+          setCurrentSelectedId(record.id);
+          if (currentSelectedId) setPendingUpdateItem([currentSelectedId, record.id]);
+          else setPendingUpdateItem([record.id]);
         },
         onMouseLeave: () => {
-          setSelectedState({ currentSelectedId: undefined, lastSelectedId: selectedState.currentSelectedId });
+          setCurrentSelectedId(undefined);
+          if (currentSelectedId) setPendingUpdateItem([currentSelectedId]);
         },
       };
     },

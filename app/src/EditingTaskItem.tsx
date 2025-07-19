@@ -3,15 +3,16 @@ import { PlusCircleOutlined } from "@ant-design/icons";
 import { App, Button, Flex, Input } from "antd";
 import { ipc } from "./ipc";
 import { error, success } from "./notification";
+import { Task } from "./types";
 const { TextArea } = Input;
 
 type P = {
-  onNotifyServer: () => void;
+  record: Task;
+  onSubmit: () => void;
 };
-
-const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
+const EditingTaskItem: React.FC<P> = ({ record, onSubmit }) => {
   const appRef = App.useApp();
-  const [inputText, setInputText] = useState("");
+  const [inputText, setInputText] = useState<string>(record.task);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(e.target.value);
@@ -21,12 +22,11 @@ const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
     // do not add empty task to avoid unintended click
     if (inputTextTrimmed.length == 0) return;
     try {
-      await ipc<null>("put_task", { task: inputTextTrimmed });
-      success(appRef, `create new task successfully`, inputTextTrimmed);
-      setInputText("");
-      onNotifyServer();
+      await ipc<null>("patch_task_task", { id: record.id, task: inputTextTrimmed });
+      success(appRef, `edit task successfully`, inputTextTrimmed);
+      onSubmit();
     } catch (e) {
-      if (e instanceof Error) error(appRef, "Error fetching todo list", e.message);
+      if (e instanceof Error) error(appRef, "failed to edit task", e.message);
     }
   };
 
@@ -51,4 +51,4 @@ const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
   );
 };
 
-export default TaskAdder;
+export default EditingTaskItem;

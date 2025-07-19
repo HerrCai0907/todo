@@ -28,24 +28,34 @@ fn get_tasks() -> String {
     to_response(get_tasks_impl())
 }
 
-fn post_task_impl(task: &str) -> CommandResult {
+fn put_task_impl(task: &str) -> CommandResult {
     let conn = db::create_connection()?;
     let tasks = db::insert_task(&conn, task)?;
     Ok(serde_json::json!(tasks))
 }
 #[tauri::command]
-fn post_task(task: &str) -> String {
-    to_response(post_task_impl(task))
+fn put_task(task: &str) -> String {
+    to_response(put_task_impl(task))
 }
 
-fn post_task_done_impl(id: i64) -> CommandResult {
+fn patch_task_status_done_impl(id: i64) -> CommandResult {
     let conn = db::create_connection()?;
-    let tasks = db::done_task(&conn, id)?;
-    Ok(serde_json::json!(tasks))
+    db::done_task(&conn, id)?;
+    Ok(serde_json::json!(()))
 }
 #[tauri::command]
-fn post_task_done(id: i64) -> String {
-    to_response(post_task_done_impl(id))
+fn patch_task_status_done(id: i64) -> String {
+    to_response(patch_task_status_done_impl(id))
+}
+
+fn patch_task_task_impl(id: i64, task: &str) -> CommandResult {
+    let conn = db::create_connection()?;
+    db::edit_task(&conn, id, &task.to_string())?;
+    Ok(serde_json::json!(()))
+}
+#[tauri::command]
+fn patch_task_task(id: i64, task: &str) -> String {
+    to_response(patch_task_task_impl(id, task))
 }
 
 fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error::Error>> {
@@ -113,8 +123,9 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_tasks,
-            post_task,
-            post_task_done
+            put_task,
+            patch_task_status_done,
+            patch_task_task,
         ])
         .setup(setup_app)
         .build(tauri::generate_context!())
