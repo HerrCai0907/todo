@@ -2,7 +2,7 @@ import React from "react";
 import { ipc } from "./ipc";
 import { Task } from "./types";
 import { error, success } from "./notification";
-import { App, Checkbox } from "antd";
+import { App, Checkbox, Row } from "antd";
 
 type P = {
   record: Task;
@@ -12,7 +12,7 @@ type P = {
 const SelectedTaskItem: React.FC<P> = ({ record, onNotifyServer }) => {
   const appRef = App.useApp();
   return (
-    <div>
+    <Row justify="space-between" style={{ width: "100%" }}>
       {record.task}&nbsp;&nbsp;&nbsp;
       <Checkbox
         onClick={() => {
@@ -27,7 +27,7 @@ const SelectedTaskItem: React.FC<P> = ({ record, onNotifyServer }) => {
           })();
         }}
       ></Checkbox>
-    </div>
+    </Row>
   );
 };
 
