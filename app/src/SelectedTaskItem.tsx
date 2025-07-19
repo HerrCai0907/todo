@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { ipc } from "./ipc";
-import { Task } from "./types";
-import { error, success } from "./notification";
+import React from "react";
+import { ipc } from "./lib/ipc";
+import { Task } from "./lib/types";
+import { error, success } from "./lib/notification";
 import { App, Checkbox, Row, Dropdown, MenuProps } from "antd";
 
 type P = {

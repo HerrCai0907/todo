@@ -1,9 +1,9 @@
 import React, { useEffect } from "react";
-import { Task } from "./types";
+import { Task } from "./lib/types";
 import TaskShower from "./TaskShower";
-import { ipc } from "./ipc";
+import { ipc } from "./lib/ipc";
 import TaskAdder from "./TaskAdder";
-import { error } from "./notification";
+import { error } from "./lib/notification";
 import { App } from "antd";
 
 const MainPage: React.FC = () => {

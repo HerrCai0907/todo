@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { PlusCircleOutlined } from "@ant-design/icons";
 import { App, Button, Flex, Input } from "antd";
-import { ipc } from "./ipc";
-import { error, success } from "./notification";
+import { ipc } from "./lib/ipc";
+import { error, success } from "./lib/notification";
 const { TextArea } = Input;
 
 type P = {

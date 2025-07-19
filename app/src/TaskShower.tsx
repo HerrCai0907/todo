@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { ConfigProvider, Table, TableProps } from "antd";
-import { Task } from "./types";
+import { Task } from "./lib/types";
 import SelectedTaskItem from "./SelectedTaskItem";
 import EditingTaskItem from "./EditingTaskItem";
 
