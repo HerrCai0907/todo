@@ -118,8 +118,15 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     Ok(())
 }
 
+fn init_database() -> Result<(), db::DBError> {
+    let conn = db::create_connection()?;
+    db::ensure_table(&conn)?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    init_database().expect("cannot init database");
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_tasks,
