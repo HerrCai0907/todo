@@ -55,6 +55,7 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
       hideOnSinglePage: true,
       showSizeChanger: false,
       size: "small",
+      pageSize: 20,
     },
     onRow: (record) => {
       return {
