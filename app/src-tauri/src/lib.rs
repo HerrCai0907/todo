@@ -82,22 +82,19 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
             ..
         } => match (button, button_state) {
             (tauri::tray::MouseButton::Left, tauri::tray::MouseButtonState::Up) => {
-                match tauri::Manager::get_webview_window(&handler, "main") {
-                    Some(window) => {
-                        position::set_webview_windows_to_position(&window, &handler, &position);
-                        window.set_focus().unwrap_or_else(|e| {
-                            eprintln!("Error focusing main window: {}", e);
-                        });
-                    }
-                    None => {
-                        tauri::webview::WebviewWindowBuilder::from_config(
-                            &handler,
-                            &handler.config().app.windows.get(0).unwrap().clone(),
-                        )
-                        .and_then(tauri::webview::WebviewWindowBuilder::build)
-                        .expect("cannot re-create main window");
-                    }
+                let window = match tauri::Manager::get_webview_window(&handler, "main") {
+                    Some(window) => window,
+                    None => tauri::webview::WebviewWindowBuilder::from_config(
+                        &handler,
+                        &handler.config().app.windows.get(0).unwrap().clone(),
+                    )
+                    .and_then(tauri::webview::WebviewWindowBuilder::build)
+                    .expect("cannot re-create main window"),
                 };
+                position::set_webview_windows_to_position(&window, &handler, &position);
+                window.set_focus().unwrap_or_else(|e| {
+                    eprintln!("error focusing main window: {}", e);
+                });
             }
             _ => {}
         },
