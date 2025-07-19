@@ -4,7 +4,7 @@ import TaskShower from "./TaskShower";
 import { ipc } from "./lib/ipc";
 import TaskAdder from "./TaskAdder";
 import { error } from "./lib/notification";
-import { App } from "antd";
+import { App, Layout } from "antd";
 
 const MainPage: React.FC = () => {
   const appRef = App.useApp();
@@ -27,10 +27,12 @@ const MainPage: React.FC = () => {
     return <div>Loading...</div>;
   }
   return (
-    <>
-      <TaskAdder onNotifyServer={handleNotifyServer}></TaskAdder>
-      <TaskShower tasks={tasks} onNotifyServer={handleNotifyServer} />
-    </>
+    <Layout>
+      <Layout.Content style={{ padding: "0 4px" }}>
+        <TaskAdder onNotifyServer={handleNotifyServer}></TaskAdder>
+        <TaskShower tasks={tasks} onNotifyServer={handleNotifyServer} />
+      </Layout.Content>
+    </Layout>
   );
 };
 

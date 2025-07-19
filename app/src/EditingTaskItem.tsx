@@ -6,10 +6,10 @@ import { Task } from "./lib/types";
 import EditableLine from "./component/EditableLine";
 
 type P = {
-  record: Task;
+  task: Task;
   onSubmit: () => void;
 };
-const EditingTaskItem: React.FC<P> = ({ record, onSubmit }) => {
+const EditingTaskItem: React.FC<P> = ({ task: record, onSubmit }) => {
   const appRef = App.useApp();
 
   const handleSubmit = async (text: string) => {

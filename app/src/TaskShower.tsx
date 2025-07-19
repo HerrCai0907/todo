@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { ConfigProvider, Table, TableProps } from "antd";
 import { Task } from "./lib/types";
 import SelectedTaskItem from "./SelectedTaskItem";
 import EditingTaskItem from "./EditingTaskItem";
@@ -9,81 +8,52 @@ type P = {
   onNotifyServer: () => void;
 };
 
-const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
-  const [currentSelectedId, setCurrentSelectedId] = useState<number | undefined>(undefined);
-  const [currentEditingId, setCurrentEditingId] = useState<number | undefined>(undefined);
-  const [pendingUpdateItem, setPendingUpdateItem] = useState<number[]>([]);
+type RowProps = {
+  onNotifyServer: () => void;
+  task: Task;
+};
 
-  const columns: TableProps<Task>["columns"] = [
-    {
-      dataIndex: "task",
-      key: "id",
-      render: (text: Task["task"], record, _) => {
-        const id = record.id;
-        const onEditing = () => {
-          setCurrentEditingId(id);
-        };
-        if (currentEditingId == record.id) {
-          const onSubmit = () => {
-            setCurrentEditingId(undefined);
-            setPendingUpdateItem([record.id]);
-            onNotifyServer();
-          };
-          return <EditingTaskItem record={record} onSubmit={onSubmit}></EditingTaskItem>;
-        } else if (currentSelectedId == record.id) {
-          return (
-            <SelectedTaskItem record={record} onEditing={onEditing} onNotifyServer={onNotifyServer}></SelectedTaskItem>
-          );
-        } else {
-          return <div>{text}</div>;
-        }
-      },
-      shouldCellUpdate(record) {
-        return pendingUpdateItem.includes(record.id);
-      },
-    },
-  ];
-
-  let props: TableProps<Task> = {
-    columns,
-    dataSource: tasks,
-    rowKey: "id",
-    size: "small",
-    bordered: false,
-    pagination: {
-      position: ["topCenter", "bottomCenter"],
-      hideOnSinglePage: true,
-      showSizeChanger: false,
-      size: "small",
-      pageSize: 20,
-    },
-    onRow: (record) => {
-      return {
-        onMouseEnter: () => {
-          setCurrentSelectedId(record.id);
-          if (currentSelectedId) setPendingUpdateItem([currentSelectedId, record.id]);
-          else setPendingUpdateItem([record.id]);
-        },
-        onMouseLeave: () => {
-          setCurrentSelectedId(undefined);
-          if (currentSelectedId) setPendingUpdateItem([currentSelectedId]);
-        },
-      };
-    },
+const Row: React.FC<RowProps> = ({ task, onNotifyServer }: RowProps) => {
+  const [hover, setHover] = useState<boolean>(false);
+  const [editing, setEditing] = useState<boolean>(false);
+  const handleMouseEnter = () => {
+    setHover(true);
+  };
+  const handleMouseLeave = () => {
+    setHover(false);
+  };
+  const handleEditing = () => {
+    setEditing(true);
+  };
+  const handleEditingSubmit = () => {
+    setEditing(false);
+    onNotifyServer();
   };
 
+  if (editing) {
+    return <EditingTaskItem task={task} onSubmit={handleEditingSubmit} />;
+  }
+  if (hover) {
+    return (
+      <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} style={{ backgroundColor: "#441d12" }}>
+        <SelectedTaskItem task={task} onEditing={handleEditing} onNotifyServer={onNotifyServer}></SelectedTaskItem>
+      </div>
+    );
+  }
   return (
-    <ConfigProvider
-      theme={{
-        components: {
-          Table: {
-            rowHoverBg: "#441d12",
-          },
-        },
-      }}
-    >
-      <Table<Task> {...props} />
-    </ConfigProvider>
+    <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} style={{}}>
+      {task.task}
+    </div>
+  );
+};
+
+const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
+  return (
+    <>
+      {tasks.map((task) => (
+        <Row key={task.id} task={task} onNotifyServer={onNotifyServer}></Row>
+      ))}
+    </>
   );
 };
 
