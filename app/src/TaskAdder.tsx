@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { PlusCircleOutlined } from "@ant-design/icons";
-import { App, Button, Flex, Input } from "antd";
+import React from "react";
+import { App } from "antd";
 import { ipc } from "./lib/ipc";
 import { error, success } from "./lib/notification";
-const { TextArea } = Input;
+import EditableLine from "./component/EditableLine";
 
 type P = {
   onNotifyServer: () => void;
@@ -11,44 +10,18 @@ type P = {
 
 const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
   const appRef = App.useApp();
-  const [inputText, setInputText] = useState("");
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputText(e.target.value);
-  };
-  const handleButtonClick = async () => {
-    const inputTextTrimmed = inputText.trim();
-    // do not add empty task to avoid unintended click
-    if (inputTextTrimmed.length == 0) return;
+  const handleSubmit = async (text: string) => {
     try {
-      await ipc<null>("put_task", { task: inputTextTrimmed });
-      success(appRef, `create new task successfully`, inputTextTrimmed);
-      setInputText("");
+      await ipc<null>("put_task", { task: text });
+      success(appRef, `create new task successfully`, text);
       onNotifyServer();
     } catch (e) {
       if (e instanceof Error) error(appRef, "Error fetching todo list", e.message);
     }
   };
 
-  return (
-    <Flex vertical={false} align={"center"} gap={"small"}>
-      <Button
-        onClick={handleButtonClick}
-        type="primary"
-        size="small"
-        style={{ marginLeft: 8 }}
-        icon={<PlusCircleOutlined />}
-      />
-      <TextArea
-        size="small"
-        placeholder="add new task"
-        autoSize
-        allowClear
-        onChange={handleInputChange}
-        value={inputText}
-      />
-    </Flex>
-  );
+  return <EditableLine onSubmit={handleSubmit} placeholder={"enter new task"}></EditableLine>;
 };
 
 export default TaskAdder;

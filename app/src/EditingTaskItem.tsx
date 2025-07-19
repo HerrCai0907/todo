@@ -1,10 +1,9 @@
-import React, { useState } from "react";
-import { PlusCircleOutlined } from "@ant-design/icons";
-import { App, Button, Flex, Input } from "antd";
+import React from "react";
+import { App } from "antd";
 import { ipc } from "./lib/ipc";
 import { error, success } from "./lib/notification";
 import { Task } from "./lib/types";
-const { TextArea } = Input;
+import EditableLine from "./component/EditableLine";
 
 type P = {
   record: Task;
@@ -12,43 +11,17 @@ type P = {
 };
 const EditingTaskItem: React.FC<P> = ({ record, onSubmit }) => {
   const appRef = App.useApp();
-  const [inputText, setInputText] = useState<string>(record.task);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputText(e.target.value);
-  };
-  const handleButtonClick = async () => {
-    const inputTextTrimmed = inputText.trim();
-    // do not add empty task to avoid unintended click
-    if (inputTextTrimmed.length == 0) return;
+  const handleSubmit = async (text: string) => {
     try {
-      await ipc<null>("patch_task_task", { id: record.id, task: inputTextTrimmed });
-      success(appRef, `edit task successfully`, inputTextTrimmed);
+      await ipc<null>("patch_task_task", { id: record.id, task: text });
+      success(appRef, `edit task successfully`, text);
       onSubmit();
     } catch (e) {
       if (e instanceof Error) error(appRef, "failed to edit task", e.message);
     }
   };
-
-  return (
-    <Flex vertical={false} align={"center"} gap={"small"}>
-      <Button
-        onClick={handleButtonClick}
-        type="primary"
-        size="small"
-        style={{ marginLeft: 8 }}
-        icon={<PlusCircleOutlined />}
-      />
-      <TextArea
-        size="small"
-        placeholder="add new task"
-        autoSize
-        allowClear
-        onChange={handleInputChange}
-        value={inputText}
-      />
-    </Flex>
-  );
+  return <EditableLine onSubmit={handleSubmit} initText={record.task}></EditableLine>;
 };
 
 export default EditingTaskItem;
