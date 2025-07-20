@@ -1,9 +1,23 @@
-use todo_core::db;
 mod position;
 
 struct CommandError(serde_json::Value);
-type CommandResult = std::result::Result<serde_json::Value, CommandError>;
+impl From<todo_core::db::DBError> for CommandError {
+    fn from(error: todo_core::db::DBError) -> Self {
+        CommandError(serde_json::json!(error.to_string()))
+    }
+}
+impl From<todo_core::root_path::Error> for CommandError {
+    fn from(error: todo_core::root_path::Error) -> Self {
+        CommandError(serde_json::json!(error.to_string()))
+    }
+}
+impl From<std::io::Error> for CommandError {
+    fn from(error: std::io::Error) -> Self {
+        CommandError(serde_json::json!(error.to_string()))
+    }
+}
 
+type CommandResult = std::result::Result<serde_json::Value, CommandError>;
 fn to_response(result: CommandResult) -> String {
     match result {
         Ok(data) => format!(r#"{{"data": {}}}"#, data.to_string()),
@@ -11,15 +25,9 @@ fn to_response(result: CommandResult) -> String {
     }
 }
 
-impl From<db::DBError> for CommandError {
-    fn from(error: db::DBError) -> Self {
-        CommandError(serde_json::json!(error.to_string()))
-    }
-}
-
 fn get_tasks_impl() -> CommandResult {
-    let conn = db::create_connection()?;
-    let tasks = db::list_tasks(&conn)?;
+    let conn = todo_core::db::create_connection()?;
+    let tasks = todo_core::db::list_tasks(&conn)?;
     Ok(serde_json::json!(tasks))
 }
 
@@ -29,8 +37,8 @@ fn get_tasks() -> String {
 }
 
 fn put_task_impl(task: &str) -> CommandResult {
-    let conn = db::create_connection()?;
-    let tasks = db::insert_task(&conn, task)?;
+    let conn = todo_core::db::create_connection()?;
+    let tasks = todo_core::db::insert_task(&conn, task)?;
     Ok(serde_json::json!(tasks))
 }
 #[tauri::command]
@@ -39,8 +47,8 @@ fn put_task(task: &str) -> String {
 }
 
 fn patch_task_status_done_impl(id: i64) -> CommandResult {
-    let conn = db::create_connection()?;
-    db::done_task(&conn, id)?;
+    let conn = todo_core::db::create_connection()?;
+    todo_core::db::done_task(&conn, id)?;
     Ok(serde_json::json!(()))
 }
 #[tauri::command]
@@ -49,13 +57,32 @@ fn patch_task_status_done(id: i64) -> String {
 }
 
 fn patch_task_task_impl(id: i64, task: &str) -> CommandResult {
-    let conn = db::create_connection()?;
-    db::edit_task(&conn, id, &task.to_string())?;
+    let conn = todo_core::db::create_connection()?;
+    todo_core::db::edit_task(&conn, id, &task.to_string())?;
     Ok(serde_json::json!(()))
 }
 #[tauri::command]
 fn patch_task_task(id: i64, task: &str) -> String {
     to_response(patch_task_task_impl(id, task))
+}
+
+fn get_storage_impl(key: &str) -> CommandResult {
+    let file = std::path::PathBuf::from(todo_core::root_path::get_folder()?).join(key);
+    Ok(std::fs::read_to_string(file)
+        .map_or_else(|_| serde_json::json!(()), |value| serde_json::json!(value)))
+}
+#[tauri::command]
+fn get_storage(key: &str) -> String {
+    to_response(get_storage_impl(key))
+}
+fn set_storage_impl(key: &str, value: &str) -> CommandResult {
+    let file = std::path::PathBuf::from(todo_core::root_path::get_folder()?).join(key);
+    std::fs::write(file, value)?;
+    Ok(serde_json::json!(()))
+}
+#[tauri::command]
+fn set_storage(key: &str, value: &str) -> String {
+    to_response(set_storage_impl(key, value))
 }
 
 fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error::Error>> {
@@ -115,9 +142,9 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     Ok(())
 }
 
-fn init_database() -> Result<(), db::DBError> {
-    let conn = db::create_connection()?;
-    db::ensure_table(&conn)?;
+fn init_database() -> Result<(), todo_core::db::DBError> {
+    let conn = todo_core::db::create_connection()?;
+    todo_core::db::ensure_table(&conn)?;
     Ok(())
 }
 
@@ -142,10 +169,14 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(plugin)
         .invoke_handler(tauri::generate_handler![
+            // task
             get_tasks,
             put_task,
             patch_task_status_done,
             patch_task_task,
+            // render order
+            set_storage,
+            get_storage,
         ])
         .setup(setup_app)
         .build(tauri::generate_context!())

@@ -6,7 +6,10 @@ import * as dndCore from "@dnd-kit/core";
 import * as dndSort from "@dnd-kit/sortable";
 import * as dndCss from "@dnd-kit/utilities";
 import * as dndMod from "@dnd-kit/modifiers";
-import { trace } from "@tauri-apps/plugin-log";
+import { ipc } from "./lib/ipc";
+import { error } from "./lib/notification";
+import { App } from "antd";
+import { logger } from "./lib/logger";
 
 type P = {
   tasks: Task[];
@@ -104,12 +107,46 @@ function sortTasksWithUserOrder(userOrder: number[], tasks: Task[]): number[] {
 }
 
 const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
+  const appRef = App.useApp();
   const [sequences, setSequences] = useState<number[] | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
+
+  const updateSequencesWithStorage = (getNewSequences: (prev: number[] | null) => number[]) => {
+    const updateStorage = async (newSequences: number[]) => {
+      try {
+        await ipc("set_storage", { key: "user_order", value: JSON.stringify(newSequences) });
+      } catch (e) {
+        logger.error(`error updating storage ${e}`);
+        if (e instanceof Error && e.stack) logger.error(e.stack.toString());
+        if (e instanceof Error) error(appRef, "error updating storage", e.message);
+      }
+    };
+    setSequences((prev) => {
+      const newSequences = getNewSequences(prev);
+      updateStorage(newSequences);
+      return newSequences;
+    });
+  };
+
   useEffect(() => {
-    const newSequences = sortTasksWithUserOrder(sequences ?? [], tasks);
-    trace(`change sequences when init: ${sequences}`);
-    setSequences(newSequences);
+    (async () => {
+      const getStoredSequences = async () => {
+        logger.debug("fetch stored sequences");
+        try {
+          const storedSequences: number[] = JSON.parse(
+            (await ipc<string | undefined>("get_storage", { key: "user_order" })) ?? "[]"
+          );
+          return storedSequences;
+        } catch (e) {
+          logger.error(`error getting storage ${e}`);
+          if (e instanceof Error && e.stack) logger.error(e.stack.toString());
+          if (e instanceof Error) error(appRef, "error getting storage", e.message);
+        }
+      };
+      const newSequences = sortTasksWithUserOrder(sequences ?? (await getStoredSequences()) ?? [], tasks);
+      logger.debug(`change sequences when update tasks: ${newSequences}`);
+      updateSequencesWithStorage(() => newSequences);
+    })();
   }, [tasks]);
 
   if (sequences == null) {
@@ -122,11 +159,11 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
   const handleDragEnd = ({ active, over }: dndCore.DragEndEvent) => {
     setActiveId(null);
     if (over && active.id !== over.id) {
-      setSequences((prev) => {
+      updateSequencesWithStorage((prev) => {
         const oldIndex = prev!.indexOf(active.id as number);
         const newIndex = prev!.indexOf(over.id as number);
         const newSequences = dndSort.arrayMove(prev!, oldIndex, newIndex);
-        trace(`change sequences when drag: ${newSequences}`);
+        logger.debug(`change sequences when drag: ${newSequences}`);
         return newSequences;
       });
     }

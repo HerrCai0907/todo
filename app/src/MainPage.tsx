@@ -5,7 +5,7 @@ import { ipc } from "./lib/ipc";
 import TaskAdder from "./TaskAdder";
 import { error } from "./lib/notification";
 import { App, Divider, Layout } from "antd";
-import { info } from "@tauri-apps/plugin-log";
+import { logger } from "./lib/logger";
 
 const MainPage: React.FC = () => {
   const appRef = App.useApp();
@@ -15,7 +15,7 @@ const MainPage: React.FC = () => {
       const newTasks = (await ipc<Task[]>("get_tasks")).reverse();
       setTasks((prevTasks) => {
         if (JSON.stringify(prevTasks) != JSON.stringify(newTasks)) {
-          info(`tasks changed`);
+          logger.info(`tasks changed`);
           return newTasks;
         } else {
           return prevTasks;
