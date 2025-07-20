@@ -1,29 +1,56 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ipc } from "./lib/ipc";
 import { Task } from "./lib/types";
 import { error, success } from "./lib/notification";
-import { App, Checkbox, Row, Dropdown, MenuProps } from "antd";
+import { App, Button, Checkbox, Dropdown, MenuProps } from "antd";
+import { DownOutlined, HolderOutlined } from "@ant-design/icons";
+import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
+
+type DragProps = {
+  setActivatorNodeRef: (element: HTMLElement | null) => void;
+  listeners: SyntheticListenerMap | undefined;
+};
 
 type P = {
   task: Task;
   onEditing: () => void;
   onNotifyServer: () => void;
+  dragProps: DragProps;
+  onDropDownStatusChanged: (open: boolean) => void;
 };
 
-const SelectedTaskItem: React.FC<P> = ({ task, onEditing, onNotifyServer }) => {
+const SelectedTaskItem: React.FC<P> = ({ task, dragProps, onDropDownStatusChanged, onEditing, onNotifyServer }) => {
   const appRef = App.useApp();
+  const [isFullRendered, setIsFullRendered] = useState(false);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setIsFullRendered(true);
+    }, 100);
+  }, []);
+
+  if (!isFullRendered) {
+    return <>{task.task}</>;
+  }
 
   const menuItems: MenuProps["items"] = [
     {
       label: "edit",
       key: "edit",
-      onClick: onEditing,
+      onClick: () => {
+        onEditing();
+        onDropDownStatusChanged(false);
+      },
     },
   ];
   return (
-    <Dropdown menu={{ items: menuItems }} trigger={["contextMenu"]}>
-      <Row justify="space-between" style={{ width: "100%" }}>
-        {task.task}
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <div>{task.task}</div>
+      <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+        <DragHandle setActivatorNodeRef={dragProps.setActivatorNodeRef} listeners={dragProps.listeners}></DragHandle>
+        <Dropdown menu={{ items: menuItems }} onOpenChange={onDropDownStatusChanged} trigger={["click", "hover"]}>
+          <DownOutlined />
+        </Dropdown>
         <Checkbox
           onClick={() => {
             (async () => {
@@ -37,9 +64,22 @@ const SelectedTaskItem: React.FC<P> = ({ task, onEditing, onNotifyServer }) => {
             })();
           }}
         ></Checkbox>
-      </Row>
-    </Dropdown>
+      </div>
+    </div>
   );
 };
 
 export default SelectedTaskItem;
+
+const DragHandle: React.FC<DragProps> = ({ setActivatorNodeRef, listeners }) => {
+  return (
+    <Button
+      type="text"
+      size="small"
+      icon={<HolderOutlined />}
+      style={{ cursor: "move" }}
+      ref={setActivatorNodeRef}
+      {...listeners}
+    />
+  );
+};
