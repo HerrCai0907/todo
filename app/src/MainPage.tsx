@@ -12,7 +12,7 @@ const MainPage: React.FC = () => {
   const handleNotifyServer = async () => {
     try {
       const tasks = await ipc<Task[]>("get_tasks");
-      setTasks(tasks);
+      setTasks(tasks.reverse());
     } catch (e) {
       if (e instanceof Error) error(appRef, "Error fetching todo list", e.message);
     }
