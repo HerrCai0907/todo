@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Task } from "./lib/types";
 import SelectedTaskItem from "./SelectedTaskItem";
 import EditingTaskItem from "./EditingTaskItem";
@@ -91,9 +91,26 @@ const Row: React.FC<RowProps> = ({ isDragging, task, onNotifyServer }: RowProps)
   );
 };
 
+function sortTasksWithUserOrder(userOrder: number[], tasks: Task[]): number[] {
+  const unknownOrderTask = tasks.filter((task) => !userOrder.includes(task.id));
+  const knownOrderTask = userOrder
+    .map((id) => tasks.find((task) => task.id === id))
+    .filter((task) => task != undefined);
+  const sortedTask = unknownOrderTask.concat(knownOrderTask);
+  return sortedTask.map((task) => task.id);
+}
+
 const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
-  const [sequences, setSequences] = useState(tasks.map((task) => task.id));
+  const [sequences, setSequences] = useState<number[] | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
+  useEffect(() => {
+    const newSequences = sortTasksWithUserOrder(sequences ?? [], tasks);
+    setSequences(newSequences);
+  }, [tasks]);
+
+  if (sequences == null) {
+    return <div>Loading...</div>;
+  }
 
   const handleDragStart = ({ active }: dndCore.DragEndEvent) => {
     setActiveId(active.id as number);
@@ -101,10 +118,10 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
   const handleDragEnd = ({ active, over }: dndCore.DragEndEvent) => {
     setActiveId(null);
     if (over && active.id !== over.id) {
-      setSequences((seq) => {
-        const oldIndex = seq.indexOf(active.id as number);
-        const newIndex = seq.indexOf(over.id as number);
-        return dndSort.arrayMove(seq, oldIndex, newIndex);
+      setSequences((prev) => {
+        const oldIndex = prev!.indexOf(active.id as number);
+        const newIndex = prev!.indexOf(over.id as number);
+        return dndSort.arrayMove(prev!, oldIndex, newIndex);
       });
     }
   };
@@ -117,14 +134,13 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
         modifiers={[dndMod.restrictToVerticalAxis]}
       >
         <dndSort.SortableContext items={sequences} strategy={dndSort.verticalListSortingStrategy}>
-          {sequences.map((id) => (
-            <Row
-              isDragging={activeId == id}
-              key={id}
-              task={tasks[mapIdToIndex[id]]}
-              onNotifyServer={onNotifyServer}
-            ></Row>
-          ))}
+          {sequences.map((id) => {
+            const index = mapIdToIndex[id];
+            if (index === undefined) {
+              return null;
+            }
+            return <Row isDragging={activeId == id} key={id} task={tasks[index]} onNotifyServer={onNotifyServer}></Row>;
+          })}
         </dndSort.SortableContext>
         <dndCore.DragOverlay>
           {activeId ? (
