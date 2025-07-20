@@ -5,14 +5,22 @@ import { ipc } from "./lib/ipc";
 import TaskAdder from "./TaskAdder";
 import { error } from "./lib/notification";
 import { App, Layout } from "antd";
+import { info } from "@tauri-apps/plugin-log";
 
 const MainPage: React.FC = () => {
   const appRef = App.useApp();
   const [tasks, setTasks] = React.useState<Task[] | undefined>(undefined);
   const handleNotifyServer = async () => {
     try {
-      const tasks = await ipc<Task[]>("get_tasks");
-      setTasks(tasks.reverse());
+      const newTasks = (await ipc<Task[]>("get_tasks")).reverse();
+      setTasks((prevTasks) => {
+        if (JSON.stringify(prevTasks) != JSON.stringify(newTasks)) {
+          info(`tasks changed`);
+          return newTasks;
+        } else {
+          return prevTasks;
+        }
+      });
     } catch (e) {
       if (e instanceof Error) error(appRef, "Error fetching todo list", e.message);
     }
@@ -20,7 +28,7 @@ const MainPage: React.FC = () => {
 
   useEffect(() => {
     handleNotifyServer();
-    let handler = setInterval(handleNotifyServer, 5 * 1000);
+    let handler = setInterval(handleNotifyServer, 1000);
     return () => clearInterval(handler);
   }, []);
   if (tasks === undefined) {
