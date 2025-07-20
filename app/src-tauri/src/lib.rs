@@ -124,7 +124,23 @@ fn init_database() -> Result<(), db::DBError> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     init_database().expect("cannot init database");
+    let plugin = tauri_plugin_log::Builder::new().targets([
+        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+    ]);
+
+    let plugin = match todo_core::path::get_folder() {
+        Err(_) => plugin,
+        Ok(dir) => plugin.target(tauri_plugin_log::Target::new(
+            tauri_plugin_log::TargetKind::Folder {
+                path: std::path::PathBuf::from(dir),
+                file_name: None,
+            },
+        )),
+    };
+    let plugin = plugin.build();
     tauri::Builder::default()
+        .plugin(plugin)
         .invoke_handler(tauri::generate_handler![
             get_tasks,
             put_task,

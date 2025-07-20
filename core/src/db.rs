@@ -13,16 +13,8 @@ impl Connection {
 
 #[derive(Debug, Snafu)]
 pub enum DBError {
-    #[snafu(display("cannot find environment '{}'", env))]
-    Env {
-        source: std::env::VarError,
-        env: String,
-    },
-    #[snafu(display("failed to create directory in '{}'", path))]
-    CreateDir {
-        source: std::io::Error,
-        path: String,
-    },
+    #[snafu(display("failed to create todo root directory"))]
+    Root { source: crate::path::Error },
     #[snafu(display("failed to connect to database in '{}'", db_path))]
     Connect {
         source: rusqlite::Error,
@@ -45,10 +37,10 @@ pub enum DBError {
 type Result<T> = std::result::Result<T, DBError>;
 
 pub fn create_connection() -> Result<Connection> {
-    let home_path = std::env::var("HOME").context(EnvSnafu { env: "HOME" })?;
-    let dir_path = format!("{}/.todo", home_path);
-    std::fs::create_dir_all(&dir_path).context(CreateDirSnafu { path: dir_path })?;
-    let db_path = format!("{}/.todo/todo.db", home_path);
+    let db_path = format!(
+        "{}/todo.db",
+        crate::path::get_folder().context(RootSnafu {})?
+    );
     let conn = rusqlite::Connection::open(&db_path).context(ConnectSnafu { db_path })?;
     Ok(Connection(conn))
 }

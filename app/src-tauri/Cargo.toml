@@ -21,3 +21,4 @@ tauri = { version = "2", features = ["tray-icon"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 todo_core = { path = "../../core" }
+tauri-plugin-log = "2"

@@ -6,6 +6,7 @@ import * as dndCore from "@dnd-kit/core";
 import * as dndSort from "@dnd-kit/sortable";
 import * as dndCss from "@dnd-kit/utilities";
 import * as dndMod from "@dnd-kit/modifiers";
+import { trace } from "@tauri-apps/plugin-log";
 
 type P = {
   tasks: Task[];
@@ -105,6 +106,7 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
   const [activeId, setActiveId] = useState<number | null>(null);
   useEffect(() => {
     const newSequences = sortTasksWithUserOrder(sequences ?? [], tasks);
+    trace(`change sequences when init: ${sequences}`);
     setSequences(newSequences);
   }, [tasks]);
 
@@ -121,7 +123,9 @@ const TaskShower: React.FC<P> = ({ tasks, onNotifyServer }: P) => {
       setSequences((prev) => {
         const oldIndex = prev!.indexOf(active.id as number);
         const newIndex = prev!.indexOf(over.id as number);
-        return dndSort.arrayMove(prev!, oldIndex, newIndex);
+        const newSequences = dndSort.arrayMove(prev!, oldIndex, newIndex);
+        trace(`change sequences when drag: ${newSequences}`);
+        return newSequences;
       });
     }
   };
