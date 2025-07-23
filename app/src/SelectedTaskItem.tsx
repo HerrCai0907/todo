@@ -46,7 +46,7 @@ const SelectedTaskItem: React.FC<P> = ({ task, dragProps, onDropDownStatusChange
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
       <div>{task.task}</div>
-      <div style={{ marginLeft: "auto", display: "flex", gap: "4px" }}>
+      <div style={{ marginLeft: "auto", display: "flex", gap: "4px", padding: "0 4px" }}>
         <DragHandle setActivatorNodeRef={dragProps.setActivatorNodeRef} listeners={dragProps.listeners}></DragHandle>
         <Dropdown menu={{ items: menuItems }} onOpenChange={onDropDownStatusChanged} trigger={["click", "hover"]}>
           <DownOutlined />
@@ -73,13 +73,8 @@ export default SelectedTaskItem;
 
 const DragHandle: React.FC<DragProps> = ({ setActivatorNodeRef, listeners }) => {
   return (
-    <Button
-      type="text"
-      size="small"
-      icon={<HolderOutlined />}
-      style={{ cursor: "move" }}
-      ref={setActivatorNodeRef}
-      {...listeners}
-    />
+    <Button type="text" size="small" style={{ cursor: "move" }} ref={setActivatorNodeRef} {...listeners}>
+      <HolderOutlined />
+    </Button>
   );
 };

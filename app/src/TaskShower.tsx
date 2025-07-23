@@ -29,6 +29,8 @@ const Row: React.FC<RowProps> = ({ isDragging, task, onNotifyServer }: RowProps)
   const style = {
     transform: dndCss.CSS.Transform.toString(transform),
     transition,
+    height: "26px",
+    alignItems: "center",
   };
 
   if (editing) {
@@ -57,7 +59,7 @@ const Row: React.FC<RowProps> = ({ isDragging, task, onNotifyServer }: RowProps)
       }
     };
     const keyNode = (
-      <div style={{ backgroundColor: "#441d12" }}>
+      <div style={{ backgroundColor: "#441d12", alignItems: "center" }}>
         <SelectedTaskItem
           onDropDownStatusChanged={handleDropDownStatusChanged}
           task={task}

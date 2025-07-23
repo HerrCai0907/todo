@@ -4,7 +4,7 @@ import TaskShower from "./TaskShower";
 import { ipc } from "./lib/ipc";
 import TaskAdder from "./TaskAdder";
 import { error } from "./lib/notification";
-import { App, Layout } from "antd";
+import { App, Divider, Layout } from "antd";
 import { info } from "@tauri-apps/plugin-log";
 
 const MainPage: React.FC = () => {
@@ -36,8 +36,9 @@ const MainPage: React.FC = () => {
   }
   return (
     <Layout>
-      <Layout.Content style={{ padding: "0 4px" }}>
+      <Layout.Content style={{ padding: "4px 4px" }}>
         <TaskAdder onNotifyServer={handleNotifyServer}></TaskAdder>
+        <Divider></Divider>
         <TaskShower tasks={tasks} onNotifyServer={handleNotifyServer} />
       </Layout.Content>
     </Layout>

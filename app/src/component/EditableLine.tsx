@@ -24,10 +24,11 @@ const EditableLine: React.FC<P> = ({ initText, placeholder, onSubmit }) => {
     onSubmit(inputTextTrimmed);
     setInputText("");
   };
-  const handlePressEnter = () => {
+  const handlePressEnter: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     // when user click enter quickly, we want to submit the input
     if (Date.now() - lastEnterTime.current <= 200) {
       handleSubmit();
+      e.preventDefault();
     }
     lastEnterTime.current = Date.now();
   };
