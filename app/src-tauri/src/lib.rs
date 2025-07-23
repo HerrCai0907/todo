@@ -129,7 +129,7 @@ pub fn run() {
         tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
     ]);
 
-    let plugin = match todo_core::path::get_folder() {
+    let plugin = match todo_core::root_path::get_folder() {
         Err(_) => plugin,
         Ok(dir) => plugin.target(tauri_plugin_log::Target::new(
             tauri_plugin_log::TargetKind::Folder {

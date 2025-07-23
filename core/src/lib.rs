@@ -1,2 +1,2 @@
 pub mod db;
-pub mod path;
+pub mod root_path;

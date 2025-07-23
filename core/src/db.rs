@@ -14,7 +14,7 @@ impl Connection {
 #[derive(Debug, Snafu)]
 pub enum DBError {
     #[snafu(display("failed to create todo root directory"))]
-    Root { source: crate::path::Error },
+    Root { source: crate::root_path::Error },
     #[snafu(display("failed to connect to database in '{}'", db_path))]
     Connect {
         source: rusqlite::Error,
@@ -39,7 +39,7 @@ type Result<T> = std::result::Result<T, DBError>;
 pub fn create_connection() -> Result<Connection> {
     let db_path = format!(
         "{}/todo.db",
-        crate::path::get_folder().context(RootSnafu {})?
+        crate::root_path::get_folder().context(RootSnafu {})?
     );
     let conn = rusqlite::Connection::open(&db_path).context(ConnectSnafu { db_path })?;
     Ok(Connection(conn))
