@@ -48,7 +48,7 @@ const SelectedTaskItem: React.FC<P> = ({ task, dragProps, onDropDownStatusChange
       <div>{task.task}</div>
       <div style={{ marginLeft: "auto", display: "flex", gap: "4px", padding: "0 4px" }}>
         <DragHandle setActivatorNodeRef={dragProps.setActivatorNodeRef} listeners={dragProps.listeners}></DragHandle>
-        <Dropdown menu={{ items: menuItems }} onOpenChange={onDropDownStatusChanged} trigger={["click", "hover"]}>
+        <Dropdown menu={{ items: menuItems }} onOpenChange={onDropDownStatusChanged} trigger={["click"]}>
           <DownOutlined />
         </Dropdown>
         <Checkbox
