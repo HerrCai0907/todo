@@ -8,7 +8,7 @@ const Root = () => (
   <React.StrictMode>
     <ConfigProvider
       theme={{
-        algorithm: [theme.darkAlgorithm, theme.compactAlgorithm],
+        algorithm: [theme.darkAlgorithm],
       }}
     >
       <App>

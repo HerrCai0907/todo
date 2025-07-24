@@ -35,7 +35,7 @@ const MainPage: React.FC = () => {
     return <div>Loading...</div>;
   }
   return (
-    <Layout>
+    <Layout style={{ minHeight: "100vh" }}>
       <Layout.Content style={{ padding: "4px 4px" }}>
         <TaskAdder onNotifyServer={handleNotifyServer}></TaskAdder>
         <Divider></Divider>
