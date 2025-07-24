@@ -1,4 +1,27 @@
+use tauri::Emitter;
+
 mod position;
+
+struct AppData {
+    kv_cache: std::collections::BTreeMap<String, String>,
+    kv_watchers: std::collections::BTreeSet<String>,
+}
+impl AppData {
+    fn new() -> Self {
+        AppData {
+            kv_cache: std::collections::BTreeMap::new(),
+            kv_watchers: std::collections::BTreeSet::new(),
+        }
+    }
+    fn update_kv(self: &mut Self, app_handle: tauri::AppHandle, key: String, value: String) {
+        if self.kv_watchers.contains(&key) {
+            app_handle
+                .emit("kv_changed", &key)
+                .expect("cannot emit event");
+        }
+        self.kv_cache.insert(key, value);
+    }
+}
 
 struct CommandError(serde_json::Value);
 impl From<todo_core::db::DBError> for CommandError {
@@ -66,26 +89,49 @@ fn patch_task_task(id: i64, task: &str) -> String {
     to_response(patch_task_task_impl(id, task))
 }
 
-fn get_storage_impl(key: &str) -> CommandResult {
-    let file = std::path::PathBuf::from(todo_core::root_path::get_folder()?).join(key);
-    Ok(std::fs::read_to_string(file)
-        .map_or_else(|_| serde_json::json!(()), |value| serde_json::json!(value)))
-}
 #[tauri::command]
-fn get_storage(key: &str) -> String {
-    to_response(get_storage_impl(key))
+fn register_event_on_storage_change(
+    state: tauri::State<std::sync::Mutex<AppData>>,
+    key: &str,
+) -> String {
+    return to_response(|| -> CommandResult {
+        state.lock().unwrap().kv_watchers.insert(key.to_string());
+        Ok(serde_json::json!(()))
+    }());
 }
-fn set_storage_impl(key: &str, value: &str) -> CommandResult {
-    let file = std::path::PathBuf::from(todo_core::root_path::get_folder()?).join(key);
-    std::fs::write(file, value)?;
-    Ok(serde_json::json!(()))
-}
+
 #[tauri::command]
-fn set_storage(key: &str, value: &str) -> String {
-    to_response(set_storage_impl(key, value))
+fn get_storage(state: tauri::State<std::sync::Mutex<AppData>>, key: &str) -> String {
+    to_response(|| -> CommandResult {
+        if let Some(value) = state.lock().unwrap().kv_cache.get(key) {
+            return Ok(serde_json::json!(value));
+        }
+        let file = std::path::PathBuf::from(todo_core::root_path::get_folder()?).join(key);
+        Ok(std::fs::read_to_string(file)
+            .map_or_else(|_| serde_json::json!(()), |value| serde_json::json!(value)))
+    }())
+}
+
+#[tauri::command]
+fn set_storage(
+    app_handle: tauri::AppHandle,
+    state: tauri::State<std::sync::Mutex<AppData>>,
+    key: &str,
+    value: &str,
+) -> String {
+    to_response(move || -> CommandResult {
+        let file = std::path::PathBuf::from(todo_core::root_path::get_folder()?).join(key);
+        std::fs::write(file, value)?;
+        state
+            .lock()
+            .unwrap()
+            .update_kv(app_handle, key.to_string(), value.to_string());
+        Ok(serde_json::json!(()))
+    }())
 }
 
 fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    tauri::Manager::manage(app, std::sync::Mutex::new(AppData::new()));
     let tray = tauri::tray::TrayIconBuilder::new();
     let tray = tray.icon(app.default_window_icon().ok_or("cannot find icon")?.clone());
 
@@ -189,6 +235,8 @@ pub fn run() {
             // render order
             set_storage,
             get_storage,
+            //
+            register_event_on_storage_change,
         ])
         .setup(setup_app)
         .build(tauri::generate_context!())

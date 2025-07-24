@@ -33,7 +33,6 @@ const Root: React.FC = () => {
     config.current.theme = newTheme;
     await storeGlobalConfig(config.current);
   };
-  console.log(theme);
 
   return (
     <React.StrictMode>
