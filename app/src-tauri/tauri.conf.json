@@ -12,11 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "todo-app",
+        "title": "todo app",
+        "label": "main",
         "width": 400,
         "height": 800,
         "devtools": true
-      }
+      },
+      { "title": "todo config", "label": "config", "url": "config.html", "create": false, "devtools": true }
     ],
     "security": {
       "csp": null

@@ -91,13 +91,10 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
 
     let tray = tray.menu(&tauri::menu::Menu::with_items(
         app,
-        &[&tauri::menu::MenuItem::with_id(
-            app,
-            "quit",
-            "quit",
-            true,
-            None::<&str>,
-        )?],
+        &[
+            &tauri::menu::MenuItem::with_id(app, "quit", "quit", true, None::<&str>)?,
+            &tauri::menu::MenuItem::with_id(app, "config", "config", true, None::<&str>)?,
+        ],
     )?);
 
     let handler = app.handle().clone();
@@ -130,11 +127,26 @@ fn setup_app(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     let tray = tray.show_menu_on_left_click(false);
     let tray = tray.on_tray_icon_event(move |_tray_icon, event| on_tray_icon_event(event));
 
-    let on_menu_event = |event: tauri::menu::MenuEvent| match &event.id.0.as_str() {
+    let handler = app.handle().clone();
+    let on_menu_event = move |event: tauri::menu::MenuEvent| match &event.id.0.as_str() {
         &"quit" => {
             std::process::exit(0);
         }
-        _ => {} // Handle other cases if necessary
+        &"config" => {
+            let window = match tauri::Manager::get_webview_window(&handler, "config") {
+                Some(window) => window,
+                None => tauri::webview::WebviewWindowBuilder::from_config(
+                    &handler,
+                    &handler.config().app.windows.get(1).unwrap().clone(),
+                )
+                .and_then(tauri::webview::WebviewWindowBuilder::build)
+                .expect("cannot create config window"),
+            };
+            window.set_focus().unwrap_or_else(|e| {
+                eprintln!("error focusing config window: {}", e);
+            });
+        }
+        _ => todo!(), // Handle other cases if necessary
     };
     let tray = tray.on_menu_event(move |_tray_icon, event| on_menu_event(event));
 
