@@ -45,7 +45,7 @@ const Row: React.FC<RowProps> = ({ isDragging, task, onNotifyServer }: RowProps)
     };
     return (
       <div ref={setNodeRef} style={style} {...attributes}>
-        <EditingTaskItem task={task} onSubmit={handleEditingSubmit} />
+        <EditingTaskItem task={task} onFinished={handleEditingSubmit} />
       </div>
     );
   }

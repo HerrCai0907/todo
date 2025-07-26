@@ -7,21 +7,24 @@ import EditableLine from "./component/EditableLine";
 
 type P = {
   task: Task;
-  onSubmit: () => void;
+  onFinished: () => void;
 };
-const EditingTaskItem: React.FC<P> = ({ task: record, onSubmit }) => {
+const EditingTaskItem: React.FC<P> = ({ task: record, onFinished }) => {
   const appRef = App.useApp();
 
   const handleSubmit = async (text: string) => {
     try {
       await ipc<null>("patch_task_task", { id: record.id, task: text });
       success(appRef, `edit task successfully`, text);
-      onSubmit();
+      onFinished();
     } catch (e) {
       if (e instanceof Error) error(appRef, "failed to edit task", e.message);
     }
   };
-  return <EditableLine onSubmit={handleSubmit} initText={record.task}></EditableLine>;
+  const handleCancel = () => {
+    onFinished();
+  };
+  return <EditableLine onSubmit={handleSubmit} onCancel={handleCancel} initText={record.task}></EditableLine>;
 };
 
 export default EditingTaskItem;

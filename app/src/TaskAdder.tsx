@@ -21,7 +21,7 @@ const TaskAdder: React.FC<P> = ({ onNotifyServer }) => {
     }
   };
 
-  return <EditableLine onSubmit={handleSubmit} placeholder={"enter new task"}></EditableLine>;
+  return <EditableLine onSubmit={handleSubmit} onCancel={() => {}} placeholder={"enter new task"}></EditableLine>;
 };
 
 export default TaskAdder;

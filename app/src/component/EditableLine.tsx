@@ -7,10 +7,10 @@ type P = {
   initText?: string;
   placeholder?: string;
   onSubmit: (text: string) => void;
+  onCancel: () => void;
 };
-// wasm perf 适配 perfetto
 
-const EditableLine: React.FC<P> = ({ initText, placeholder, onSubmit }) => {
+const EditableLine: React.FC<P> = ({ initText, placeholder, onSubmit, onCancel }) => {
   const [inputText, setInputText] = useState<string>(initText ?? "");
   const lastEnterTime = useRef<number>(0);
 
@@ -32,6 +32,11 @@ const EditableLine: React.FC<P> = ({ initText, placeholder, onSubmit }) => {
     }
     lastEnterTime.current = Date.now();
   };
+  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+    if (e.key == "Escape") {
+      onCancel();
+    }
+  };
 
   return (
     <Flex vertical={false} align={"center"} gap={"small"}>
@@ -50,6 +55,7 @@ const EditableLine: React.FC<P> = ({ initText, placeholder, onSubmit }) => {
         onChange={handleInputChange}
         value={inputText}
         onPressEnter={handlePressEnter}
+        onKeyDown={handleKeyDown}
       />
     </Flex>
   );
