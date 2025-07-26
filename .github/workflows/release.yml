@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest]
+        platform: [macos-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -112,11 +112,11 @@ jobs:
           name: macos-build
           path: release/macos
 
-      # - name: Download Windows artifacts
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: windows-build
-      #     path: release/windows
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: release/windows
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
