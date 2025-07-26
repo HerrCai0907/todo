@@ -10,7 +10,9 @@ A minimalist and high-performance to-do list manager tailored for programmers, o
 
 ### 1. Fast Interaction
 
-- Supports both command line (CLI) and menu bar icon (Tray) modes for quick wake-up, allowing you to record tasks anytime and anywhere.
+- Supports command line (CLI), during coding process there is no need to switch contexts. Commands can be directly input in the terminal command line for task management.
+- Supports menu bar icons (Tray) and GUI interface, facilitating complex operations.
+- Supports MCP service, seamlessly integrated with copilot.
 
 ### 2. Protecting Data Privacy
 
