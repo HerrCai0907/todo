@@ -1,0 +1,11 @@
+[package]
+name = "todo_mcp"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+todo_core = { path = "../core" }
+tokio = { version = "1.46.1", features = ["macros", "rt-multi-thread"] }
+rmcp = { version = "0.3.0", features = ["transport-io"] }
+serde.workspace = true
+schemars = "1.0.4"

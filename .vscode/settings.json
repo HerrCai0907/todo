@@ -1,5 +1,15 @@
 {
   "editor.formatOnSave": true,
-  "cSpell.words": ["AUTOINCREMENT", "crossterm", "localtime", "rusqlite", "rustyline", "serde", "tauri"],
+  "cSpell.words": [
+    "AUTOINCREMENT",
+    "crossterm",
+    "localtime",
+    "rmcp",
+    "rusqlite",
+    "rustyline",
+    "schemars",
+    "serde",
+    "tauri"
+  ],
   "rust-analyzer.cargo.targetDir": "target/analyzer"
 }
