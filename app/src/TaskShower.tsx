@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Task } from "./lib/types";
 import SelectedTaskItem from "./SelectedTaskItem";
 import EditingTaskItem from "./EditingTaskItem";
@@ -10,6 +10,8 @@ import { ipc } from "./lib/ipc";
 import { error } from "./lib/notification";
 import { App } from "antd";
 import { logger } from "./lib/logger";
+import { GlobalConfigContext } from "./component/ConfigContext";
+import { Theme } from "./lib/global_config";
 
 type P = {
   tasks: Task[];
@@ -61,8 +63,12 @@ const Row: React.FC<RowProps> = ({ isDragging, task, onNotifyServer }: RowProps)
         setHover(false);
       }
     };
+
+    const { theme } = useContext(GlobalConfigContext);
+    const backgroundColor = theme == Theme.Dark ? "#441d12" : "#f8b692";
+
     const keyNode = (
-      <div style={{ backgroundColor: "#441d12", alignItems: "center" }}>
+      <div style={{ backgroundColor, alignItems: "center" }}>
         <SelectedTaskItem
           onDropDownStatusChanged={handleDropDownStatusChanged}
           task={task}

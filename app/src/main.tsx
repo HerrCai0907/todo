@@ -4,6 +4,7 @@ import MainPage from "./MainPage";
 import { ConfigProvider, theme as antdTheme, App } from "antd";
 import "./index.css";
 import { defaultConfig, registerOnGlobalConfigChanged, Theme } from "./lib/global_config";
+import { GlobalConfigContext } from "./component/ConfigContext";
 
 const Root = () => {
   const [theme, setTheme] = useState<Theme>(defaultConfig.theme);
@@ -15,15 +16,17 @@ const Root = () => {
 
   return (
     <React.StrictMode>
-      <ConfigProvider
-        theme={{
-          algorithm: theme === Theme.Dark ? [antdTheme.darkAlgorithm] : [],
-        }}
-      >
-        <App>
-          <MainPage />
-        </App>
-      </ConfigProvider>
+      <GlobalConfigContext.Provider value={{ theme }}>
+        <ConfigProvider
+          theme={{
+            algorithm: theme === Theme.Dark ? [antdTheme.darkAlgorithm] : [],
+          }}
+        >
+          <App>
+            <MainPage />
+          </App>
+        </ConfigProvider>
+      </GlobalConfigContext.Provider>
     </React.StrictMode>
   );
 };
