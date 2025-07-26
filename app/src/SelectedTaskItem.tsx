@@ -46,35 +46,74 @@ const SelectedTaskItem: React.FC<P> = ({ task, dragProps, onDropDownStatusChange
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
       <div>{task.task}</div>
-      <div style={{ marginLeft: "auto", display: "flex", gap: "4px", padding: "0 4px" }}>
-        <DragHandle setActivatorNodeRef={dragProps.setActivatorNodeRef} listeners={dragProps.listeners}></DragHandle>
-        <Dropdown menu={{ items: menuItems }} onOpenChange={onDropDownStatusChanged} trigger={["click"]}>
-          <DownOutlined />
-        </Dropdown>
-        <Checkbox
-          onClick={() => {
-            (async () => {
-              try {
-                await ipc<null>("patch_task_status_done", { id: task.id });
-                success(appRef, `finished`, task.task);
-                onNotifyServer();
-              } catch (e) {
-                if (e instanceof Error) error(appRef, "An error occurred while completing the task", e.message);
-              }
-            })();
-          }}
-        ></Checkbox>
+      <div
+        style={{
+          marginLeft: "auto",
+          display: "flex",
+          gap: "4px",
+          padding: "0 4px",
+          height: "100%",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ flex: 1, height: "100%" }}>
+          <Button
+            type="text"
+            style={{
+              cursor: "move",
+              height: "100%",
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: "0px",
+            }}
+            ref={dragProps.setActivatorNodeRef}
+            {...dragProps.listeners}
+          >
+            <HolderOutlined />
+          </Button>
+        </div>
+        <div style={{ flex: 1, height: "100%" }}>
+          <Dropdown menu={{ items: menuItems }} onOpenChange={onDropDownStatusChanged} trigger={["click"]}>
+            <div
+              style={{
+                height: "100%",
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <DownOutlined />
+            </div>
+          </Dropdown>
+        </div>
+        <div style={{ flex: 1, height: "100%" }}>
+          <Checkbox
+            style={{
+              height: "100%",
+              width: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+            onClick={() => {
+              (async () => {
+                try {
+                  await ipc<null>("patch_task_status_done", { id: task.id });
+                  success(appRef, `finished`, task.task);
+                  onNotifyServer();
+                } catch (e) {
+                  if (e instanceof Error) error(appRef, "An error occurred while completing the task", e.message);
+                }
+              })();
+            }}
+          ></Checkbox>
+        </div>
       </div>
     </div>
   );
 };
 
 export default SelectedTaskItem;
-
-const DragHandle: React.FC<DragProps> = ({ setActivatorNodeRef, listeners }) => {
-  return (
-    <Button type="text" size="small" style={{ cursor: "move" }} ref={setActivatorNodeRef} {...listeners}>
-      <HolderOutlined />
-    </Button>
-  );
-};
