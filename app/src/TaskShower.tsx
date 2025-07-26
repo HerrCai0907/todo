@@ -25,6 +25,7 @@ type RowProps = {
 };
 
 const Row: React.FC<RowProps> = ({ isDragging, task, onNotifyServer }: RowProps) => {
+  const { theme } = useContext(GlobalConfigContext);
   const [focus, setFocus] = useState<boolean>(isDragging); // dragging force focus
   const [hover, setHover] = useState<boolean>(false);
   const [editing, setEditing] = useState<boolean>(false);
@@ -64,7 +65,6 @@ const Row: React.FC<RowProps> = ({ isDragging, task, onNotifyServer }: RowProps)
       }
     };
 
-    const { theme } = useContext(GlobalConfigContext);
     const backgroundColor = theme == Theme.Dark ? "#441d12" : "#f8b692";
 
     const keyNode = (
