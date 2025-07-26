@@ -1,0 +1,130 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-app:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest]
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            app/src-tauri
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install npm dependencies
+        run: |
+          cd app
+          npm ci
+
+      - name: Install Tauri CLI
+        run: |
+          cd app
+          npm install @tauri-apps/cli
+
+      - name: Install dependencies (macOS)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          rustup target add aarch64-apple-darwin
+
+      - name: Install dependencies (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          rustup target add x86_64-pc-windows-msvc
+
+      - run: |
+          cargo build --release --bin todo_cli --bin todo_mcp
+
+      - name: Build Tauri App (macOS)
+        if: matrix.platform == 'macos-latest'
+        run: |
+          cd app
+          npm run tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Build Tauri App (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          cd app
+          npm run tauri build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Upload artifacts (macOS)
+        if: matrix.platform == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: |
+            target/release/bundle/dmg/*.dmg
+            target/release/bundle/macos/todo-app.app
+            target/release/todo_cli
+            target/release/todo_mcp
+
+      - name: Upload artifacts (Windows)
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            target/release/bundle/nsis/*.exe
+            target/release/bundle/msi/*.msi
+            target/release/todo_cli.exe
+            target/release/todo_mcp.exe
+
+  create-release:
+    permissions:
+      contents: write
+    needs: build-app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-build
+          path: release/macos
+
+      # - name: Download Windows artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: windows-build
+      #     path: release/windows
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/macos/todo_mcp
+            release/macos/todo_cli
+            release/macos/**/*.dmg
+            release/macos/**/*.app
+            release/windows/**/*.exe
+            release/windows/**/*.msi
