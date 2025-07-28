@@ -35,7 +35,6 @@ const Row: React.FC<RowProps> = ({ isDragging, task, onNotifyServer }: RowProps)
   const style = {
     transform: dndCss.CSS.Transform.toString(transform),
     transition,
-    height: "26px",
     alignItems: "center",
   };
 
